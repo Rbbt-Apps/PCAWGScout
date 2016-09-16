@@ -1,0 +1,18 @@
+
+%h3 Samples
+
+- donors = PCAWG.all_donors
+
+- tsv = TSV.setup(donors, :key_field => PCAWG::DONOR_FIELD, :fields => [], :type => :list)
+
+- tsv = tsv.attach PCAWG.donor_histology
+- tsv = tsv.attach PCAWG.donor_clinical
+
+-# tsv.add_field "Abbreviation" do |donor,values|
+  - Specimen.setup(Donor.setup(donor).tumor_specimens.flatten.first).abbreviation
+
+-# tsv.add_field "Abbreviation" do |donor,values|
+  - Specimen.setup(Donor.setup(donor).tumor_specimens.flatten.first).color
+
+= table do
+  - tsv

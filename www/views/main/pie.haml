@@ -1,0 +1,22 @@
+- abbrs = PCAWG.all_abbreviations
+- donors = PCAWG.all_donors
+- abbr_donors = TSV.setup({}, :key_field => "histology_abbreviation", :fields => ["donors"], :type => :double)
+- donor_histology = PCAWG.donor_histology.tsv :fields => ["histology_abbreviation"], :type => :single
+- donors.each do |donor|
+  - donor_abbr = donor_histology[donor]
+  - abbr_donors[donor_abbr] ||= []
+  - abbr_donors[donor_abbr][0] ||= []
+  - abbr_donors[donor_abbr][0] << donor
+
+- abbr_donors.add_field "y" do |abbr,values|
+  - [values[0].length]
+
+- abbr_donors.add_field "color" do |abbr,values|
+  - [PCAWG.abbr_color(abbr)]
+
+- abbr_donors.add_field "url" do |abbr,values|
+  - ["/entity/Study/#{abbr}"]
+
+- abbr_donors = abbr_donors.slice(["y", "color", "url"]).to_list
+
+= tool :nvd3, :plot => :pie, :data => abbr_donors, :height => '1500px', :width => '1000px'

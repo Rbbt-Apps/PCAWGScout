@@ -1,0 +1,123 @@
+- study = list.study
+
+- action_card = ActionCard.new 
+ 
+- contrast = false
+-# action_card.require :main_field, :contrast
+= action_card_render action_card do
+  - other_factors = study.sample_info.fields.select{|name| name = Misc.snake_case(name); locals[name] and locals[name] != "false"}
+  - other_factors << 'BRCA status' if  locals["BRCA_status"] and locals["BRCA_status"] != "false"
+  - main_field = "donor_survival_time"
+  - main_event = "donor_vital_status"
+
+  - sample_info = study.sample_info.slice [main_field, main_event]
+  - if contrast and contrast  != 'none'
+    - contrast_list = Entity::List.load_list("Sample", contrast, user)
+    - sample_info = sample_info.select((list + contrast_list).uniq)
+
+  - sample_info.add_field "Event" do |k,values|
+    - values[main_event].first == 'deceased' ? [1] : [0]
+
+  - Log.tsv sample_info
+
+  = resource("Survival plot for #{list_id}.png", nil, :image) do |result_file|
+    :ruby
+      sample_info.R <<-EOF
+        library(survival)
+        library(graphics)
+
+        data$In.list=NA
+        data[#{R.ruby2R(list)}, "In.list"] = TRUE
+        data[#{R.ruby2R(study.sample_info.keys - list)}, "In.list"] = FALSE
+        names(data) <- make.names(names(data))
+
+        main.field = make.names('#{main_field}')
+        main.event = make.names('Event')
+
+        surv = Surv(data[[main.field]], data[[main.event]])
+
+        rbbt.png_plot('#{result_file}', 600, 600, 'plot(survfit(surv ~ data$In.list), lty = 2:3); \
+                                                        legend(100, .9, c("In list", "Rest"), lty = 3:2);
+                                                        title("Kaplan-Meier Curves\\nfor #{list_id}"); \
+                                                       '\
+        )
+
+        data = NULL
+      EOF
+
+
+  
+-#
+  - result = nil
+  = table do
+    - tsv = nil
+    :ruby
+      tsv = sample_info.R <<-EOF
+        library(survival)
+
+        names(data) <- make.names(names(data))
+
+        data$In.list=NA
+
+        data[#{R.ruby2R(list)}, "In.list"] = TRUE
+        data[#{R.ruby2R(study.sample_info.keys - list)}, "In.list"] = FALSE
+
+        data$BRCA.status=NA
+ 
+        data[, "BRCA.status"] = "Unmutated"
+        #data[! is.na(data$BRCA1.status), "BRCA.status"] = "Mutated"
+        #data[! is.na(data$BRCA2.status), "BRCA.status"] = "Mutated"
+        data[! is.na(data$BRCA1.status) & data$BRCA1.status != "", "BRCA.status"] = "Mutated"
+        data[! is.na(data$BRCA2.status) & data$BRCA2.status != "", "BRCA.status"] = "Mutated"
+
+        main.field = make.names('#{main_field}')
+        main.event = make.names('#{main_event}')
+
+        other.factors = make.names(#{R.ruby2R other_factors})
+
+        formula.str = "surv ~ data$In.list";
+        factor.names = c('In.list')
+
+        data[["tumor.grade"]] = ordered(data[["tumor.grade"]], levels=c("GB","G1","G2","G3","G4"))
+        if ("tumor.grade" %in% other.factors){
+          formula.str = paste(formula.str, sep=" + ", "as.numeric(data$tumor.grade)" )
+          factor.names = c(factor.names, 'tumor.grade')
+        }
+
+        data[["tumor.stage"]] = ordered(data[["tumor.stage"]])
+        if ("tumor.stage" %in% other.factors){
+          formula.str = paste(formula.str, sep=" + ", "as.numeric(data$tumor.stage)" )
+          factor.names = c(factor.names, 'tumor.stage')
+        }
+
+        data[["FIGO.simple"]] = ordered(data[["FIGO.simple"]], levels=c("I", "II", "III", "IV"))
+        if ("FIGO.simple" %in% other.factors){
+          formula.str = paste(formula.str, sep=" + ", "as.numeric(data$FIGO.simple)" )
+          factor.names = c(factor.names, 'FIGO.simple')
+        }
+
+        if ("age.at.initial.pathologic.diagnosis" %in% other.factors){
+          formula.str = paste(formula.str, sep=" + ", "as.numeric(data$age.at.initial.pathologic.diagnosis)" )
+          factor.names = c(factor.names, 'age.at.initial.pathologic.diagnosis')
+        }
+
+        if ("BRCA.status" %in% other.factors){
+          formula.str = paste(formula.str, sep=" + ", "as.factor(data$BRCA.status)" )
+          factor.names = c(factor.names, 'BRCA.status')
+        }
+       
+        surv <- Surv( data[[main.field]], data[[main.event]])
+
+        #formula = as.formula("surv ~ data$BRCA.mutation.status +
+        #       as.numeric( data$tumor.grade ) +
+        #       data$AGE_OF_DIAGNOSIS +
+        #       as.numeric( data$FIGO.simple ) +
+        #       as.numeric( RPKMch6[ i , data$Sample ]")
+
+        
+        m = coxph(as.formula(formula.str))
+        data = summary(m)$coefficients
+        rownames(data) <- factor.names
+        data
+      EOF
+    - tsv

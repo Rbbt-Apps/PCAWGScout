@@ -1,0 +1,15 @@
+---
+Sample:
+  http://10.10.116.43:1999/Sample: 
+    - mi 
+    - gene_mutation_status
+    - missing_genes
+    - compound_mutation_genes
+    - homozygous_genes
+    - num_genomic_mutations
+    - pandrugs
+    - mutation_signature
+Study:
+  http://10.10.116.43:1998/Study: 
+    - binomial_significance
+    - mut_sig

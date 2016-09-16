@@ -1,0 +1,32 @@
+- require 'rbbt/tsv/excel'
+- sample = entity
+- entity_card = EntityCard.new(sample)
+- entity_card.name = entity
+- entity_card.meta do
+  %dl
+    %dt From VCF
+    %dd= Sample.vcf_files([sample.study, sample] * ":").any?
+
+- entity_card.description do
+
+  - if sample.num_genomic_mutations > 0
+    %dl
+      %dt Genomic Mutations
+      %dd= sample.num_genomic_mutations
+
+      %dt Mutated (principal) Isoforms
+      - isoforms = sample.mi(:principal => true) #.collect{|mi| mi.to_s}
+      %dd= MutatedIsoform.setup(isoforms, sample.organism).list_link :length, "Mutated (principal) Isoforms in #{ sample }"
+
+      %dt Affected genes
+      %dd= sample.get_genes(:affected).list_link :length, "Affected genes in #{ sample }"
+
+      %dt Damaged genes
+      %dd= sample.get_genes(:damaged).list_link :length, "Damaged genes in #{ sample }"
+
+    = table :table_id => "Sample gene status#{ sample }" do
+      - sample.gene_sample_mutation_status
+
+- entity_card.action_controller = default_action_controller sample
+
+= entity_card_render entity_card

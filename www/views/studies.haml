@@ -1,0 +1,16 @@
+.ui.segment.content
+  - if user_studies[user].nil? or user_studies[user].empty?
+    .ui.header
+      You do not have access to any studies
+  - else
+    .ui.header
+      Select a study
+    .content
+      %ul.clean_list
+        - user_studies[user].each do |study|
+          %li
+            = study.link
+            \# Mutations:
+            = study.num_genomic_mutations
+            \# Samples:
+            = study.samples.length

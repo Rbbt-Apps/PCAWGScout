@@ -1,0 +1,87 @@
+%h2 Graph
+
+- study = entity
+- genes = study.recurrent_genes(:job, :_recurrent_threshold => 0.2).run
+
+:sass
+  #plot .window
+    height: 1000px
+    width: 1000px
+    border: 1px solid black
+  .menu
+    &.inactive
+      display: none
+    textarea
+      height: 500px
+
+
+#plot
+  .tool
+  .window
+
+:deferjs
+  //var genes = #{genes.to_json}
+
+  //var plot = $("#plot .window")
+  //var menu = $('#plot .menu')
+
+  //var model
+
+  //$('.toggle_menu').click(function(){
+  //  $('.menu').toggleClass('.inactive')
+  //})
+
+  //rbbt.plots.graph.parents(db, genes, "Gene").then(function(assocs){
+
+  //  rbbt.plots.graph.filter_associations(assocs, function(info){
+  //    return info.affected == "true"
+  //  })
+
+  //  rbbt.plots.graph.view_cytoscapejs(model, plot)
+  //})
+
+  model = {associations: {}, rules:[], aes_rules: [], edge_rules: [], edge_aes_rules: []}
+
+  model.rules.push({property: 'name', entity_type: "Gene"})
+  model.rules.push({name:'name', property: 'donor', entity_type: "Sample"})
+  model.aes_rules.push({name: 'name', aes:'label'})
+  model.aes_rules.push({entity_type: 'Gene', aes:'color', value: 'red'})
+  model.edge_rules.push({name:'affected', info: 'broken'})
+  model.edge_aes_rules.push({aes:'color', name: 'affected', mapper: 'map', mapper_obj: {'true':'red', 'false':'blue'}})
+
+  var mcomp = {}
+  mcomp.model = model
+  mcomp.study = "#{study}"
+  mcomp.Gene = ["ENSG00000255561"]
+  mcomp.Sample = ["DO856"]
+  mcomp.plot = $('#plot .window')
+
+  mcomp.controller = function(){
+    console.log(mcomp)
+    var db = 'sample_genes@' + mcomp.study
+    rbbt.plots.graph.subset(db, mcomp.Sample, mcomp.Gene).then(function(assocs){
+
+      rbbt.plots.graph.filter_associations(assocs, function(info){
+        return info.affected == "true"
+      })
+
+      mcomp.model.associations[db] = assocs
+      mcomp.model.entities = undefined
+      console.log(mcomp.model)
+      rbbt.plots.graph.view_cytoscapejs(mcomp.model, mcomp.plot)
+    })
+  }
+
+
+  mcomp.view = function(ctrl){
+    var entities = []
+    forHash(model.entities, function(type, info){
+      var textarea = m('textarea', {oninput: m.withAttr('value', function(text){mcomp[type] = text.split("\n"), mcomp.controller()})},info.codes.join("\n"))
+      entities.push(textarea)
+    })
+    return m('div',entities)
+  }
+
+  rbbt.mount($('#plot .tool')[0], mcomp)
+
+  

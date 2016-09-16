@@ -1,0 +1,54 @@
+- action_card = ActionCard.new 
+
+- unless defined? gene and gene and not gene.empty?
+  - action_card.action_parameters = Proc.new do
+    - input :gene, :string, "Gene"
+
+- action_card.require :gene
+- action_card.description do
+  :markdown
+    Report alterations over a given gene in the study #{entity}
+
+= action_card_render action_card do
+
+  - gene = get_gene gene, entity.organism
+  - raise ParameterException, "Gene not recognize" if gene.nil?
+  - name = gene.name || gene 
+
+  - study = entity
+
+  - if study.has_genotypes?
+
+    - Study.setup(study)
+
+    -#
+      - matches = study.knowledge_base.subset(:mutation_info, :target => [gene], :source => :all)
+      - tsv = matches.tsv
+
+      %h5 #{name} Mutation overview (#{study.metagenotype.length} total mutations)
+      %dl
+        %dt All overlapping mutations
+        %dd= matches.source_entity.length
+
+        %dt Relevant mutations
+        %dd= matches.select{|item| item.info["affected"].to_s == "true" }.source_entity.uniq.length
+
+        %dt Damaging mutations
+        %dd= matches.select{|item| item.info["broken"].to_s == "true" }.source_entity.uniq.length
+
+    - matches = study.knowledge_base.subset(:sample_genes, :target => [gene], :source => :all)
+    - tsv = matches.tsv
+
+    %h5 Sample #{name} overview (#{study.num_genotyped_samples} total samples)
+    %dl
+      %dt All samples
+      %dd= matches.source_entity.uniq.list_link :length, "Samples with alterations over #{ name } in #{ study }"
+
+      %dt Samples affected
+      %dd= matches.select{|item| item.info["affected"].to_s == "true" }.source_entity.uniq.list_link :length, "Samples with relevant mutations over #{ name } in #{ study }"
+
+      %dt Samples damaged
+      %dd= matches.select{|item| item.info["broken"].to_s == "true" }.source_entity.uniq.list_link :length, "Samples with damaging mutations over #{ name } in #{ study }"
+
+    = table :row_ids => :consume do
+      - tsv

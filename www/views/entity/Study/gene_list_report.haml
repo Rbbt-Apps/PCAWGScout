@@ -1,0 +1,64 @@
+- action_card = ActionCard.new do
+  - input :list, :select, "Gene list", nil, :html_options => {:class => 'favourite_lists', :type => "Gene"}
+
+- action_card.require :list
+
+- action_card.description do
+  :markdown
+    Report alterations over a given list of genes in the study #{ entity }
+
+= action_card_render action_card do
+  - study = entity
+  - name = list
+
+
+  - if study.has_genotypes?
+    - genes = get_genes Entity::List.load_list("Gene", list, user)
+
+    %h2 #{ name } in #{ study } (#{genes.length})
+
+    -#
+      - matches = study.knowledge_base.subset(:mutation_info, :target => genes, :source => :all)
+      - tsv = matches.tsv
+
+      %h3 Mutation overview (#{study.metagenotype.length})
+      %dl
+        %dt All mutations
+        %dd= matches.source_entity.length
+
+        %dt Relevant mutations
+        %dd= matches.select{|item| item.info["affected"].to_s == "true" }.source_entity.uniq.length
+
+        %dt Damaging mutations
+        %dd= matches.select{|item| item.info["broken"].to_s == "true" }.source_entity.uniq.length
+
+    - matches = study.knowledge_base.subset(:sample_genes, :target => genes, :source => :all)
+    - tsv = matches.tsv
+
+    %h3 Sample overview (#{study.samples.select_by(:has_genotype?).length})
+    %dl
+      %dt All samples
+      %dd= matches.source_entity.uniq.list_link :length, "Samples with mutations over #{ name } in #{ study }"
+
+      %dt Samples affected
+      %dd= matches.select{|item| item.info["affected"].to_s == "true" }.source_entity.uniq.list_link :length, "Samples with relevant mutations over #{ name } in #{ study }"
+
+      %dt Samples damaged
+      %dd= matches.select{|item| item.info["broken"].to_s == "true" }.source_entity.uniq.list_link :length, "Samples with damaging mutations over #{ name } in #{ study }"
+
+    %h3 Gene overview (#{study.get_genes(:affected).length})
+    %dl
+      %dt Overlapping genes
+      %dd= matches.target_entity.uniq.list_link :length, "Genes in #{ name } overlapping mutations in #{ study }"
+
+      %dt Genes affected
+      %dd= matches.select{|item| item.info["affected"].to_s == "true" }.target_entity.uniq.list_link :length, "Genes in #{ name } affected by mutations in #{ study }"
+
+      %dt Genes damaged
+      %dd= matches.select{|item| item.info["broken"].to_s == "true" }.target_entity.uniq.list_link :length, "Genes in #{ name } damaged by in #{ study }"
+
+    = table :row_ids => :consume do
+      - tsv
+
+    = table do
+      - tsv.to_double.reorder "Ensembl Gene ID", tsv.fields - ["Ensembl Gene ID"]

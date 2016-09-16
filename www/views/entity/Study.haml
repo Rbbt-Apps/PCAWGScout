@@ -1,0 +1,83 @@
+- study = entity
+
+- entity_card = EntityCard.new(study)
+- entity_card.name = study
+- entity_card.long_name = study.metadata[:condition]
+- entity_card.meta
+- entity_card.meta do
+  :plain
+    #{hash2dl study.metadata}
+  %dl
+
+    %dt Registered samples 
+    %dd= study.samples.list_link :length, "Samples in #{ study }"
+
+    - if study.respond_to?(:has_genotypes?) and study.has_genotypes?
+      - samples = study.genotyped_samples
+      %dt Genotyped samples
+      %dd= samples.list_link :length, "Genotyped samples in #{ study }"
+
+    - if study.respond_to?(:has_cnv?) and study.has_cnv?
+      - samples = study.samples.select{|s| s.has_cnv? }
+      %dt CNV samples
+      %dd= samples.list_link :length, "CNV samples in #{ study }"
+
+    - if study.respond_to?(:matrices) and study.matrices.any?
+      %dt Matrices
+      %dd
+        %dl
+          - study.matrices.each do |matrix|
+            %dt #{matrix} samples
+            %dd
+              = fragment do
+                = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Samples in #{study} matrix #{matrix}"
+
+
+- if entity.has_genotypes?
+  - entity_card.add_section "Mutations and Genes" do
+
+    %table.ui.collapsing.table
+      %tbody
+        %tr
+          %td All Mutations
+          %td= study.num_genomic_mutations
+
+        %tr
+          %td All Overlapping Genes
+          %td= entity.get_genes.list_link :length, "All overlapping genes in #{ entity }"
+    
+        %tr
+          %td Affected genes
+          %td= entity.get_genes(:affected).list_link :length, "Affected genes in #{ entity }"
+
+        %tr
+          %td Damaged genes
+          %td= entity.get_genes(:damaged_mutated_isoform).list_link :length, "Damaged genes in #{ entity }"
+
+        %tr
+          %td Broken genes 
+          %td= entity.get_genes(:broken).list_link :length, "Broken genes in #{ entity }"
+
+        -#%tr
+          %td Missing genes
+          %td= entity.get_genes(:missing?).list_link :length, "Missing genes in #{ entity }"
+
+        -#%tr
+          %td Surely missing genes
+          %td= entity.get_genes(:missing).list_link :length, "Surely missing genes in #{ entity }"
+
+        %tr
+          %td Recurrent genes
+          %td= entity.get_genes(:recurrent).list_link :length, "Recurrent genes in #{ entity }"
+
+  - entity_card.add_section "Gene status by sample" do
+    = fragment do
+      = table :row_ids => :consume do
+        - matches = study.knowledge_base.subset(:sample_genes, :all)
+        - matches.tsv
+
+
+- entity_card.action_controller = default_action_controller entity
+
+= entity_card_render entity_card
+
