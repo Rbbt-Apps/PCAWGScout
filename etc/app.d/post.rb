@@ -81,8 +81,8 @@ sample_tasks.delete_if do |task|
   deps = [task]
   while deps.any?
     task = deps.shift
-    good = false if task =~ /genomic.*mutation/
-    break unless good
+    good = false if task =~ /genomic.*mutation/ or task =~ /vcf/ or task =~ /homozy/ or task =~ /cnv/
+    break if not good
     next if Sample.task_dependencies[task.to_sym].nil?
     task_deps = Sample.task_dependencies[task.to_sym].collect do |d|
       case d
@@ -108,8 +108,8 @@ study_tasks.delete_if do |task|
   deps = [task]
   while deps.any?
     task = deps.shift
-    good = false if task =~ /genomic.*mutation/
-    break unless good
+    good = false if task =~ /genomic.*mutation/ or task =~ /vcf/ or task =~ /homozy/ or task =~ /cnv/
+    break if not good
     next if Study.task_dependencies[task.to_sym].nil?
     task_deps = Study.task_dependencies[task.to_sym].collect do |d|
       case d
@@ -126,6 +126,7 @@ study_tasks.delete_if do |task|
   end
   ! good
 end
+
 sample_tasks.concat remote_sample_tasks
 sample_tasks.each do |task|
   Sample.export task.to_sym

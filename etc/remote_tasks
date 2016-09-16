@@ -5,7 +5,6 @@ Sample:
     - gene_mutation_status
     - missing_genes
     - compound_mutation_genes
-    - homozygous_genes
     - num_genomic_mutations
     - pandrugs
     - mutation_signature
