@@ -29,8 +29,11 @@
           - study.matrices.each do |matrix|
             %dt #{matrix} samples
             %dd
-              = fragment do
-                = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Samples in #{study} matrix #{matrix}"
+              - if study.matrix(matrix).samples
+                = fragment do
+                  = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Samples in #{study} matrix #{matrix}"
+              - else
+                0
 
   %h3 Cohort tasks
 
