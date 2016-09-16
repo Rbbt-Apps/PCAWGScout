@@ -130,7 +130,6 @@ study_tasks.delete_if do |task|
         retry
       end
     end
-    iii [task, task_deps]
     rest_tasks = task_deps.compact - remote_study_tasks
     deps.concat rest_tasks
     deps.uniq!
