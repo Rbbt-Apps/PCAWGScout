@@ -107,7 +107,6 @@ study_tasks.delete_if do |task|
   good = true
   deps = [task]
   while deps.any?
-    iii [task, deps]
     task = deps.shift
     good = false if task =~ /genomic.*mutation/
     break unless good
@@ -127,10 +126,12 @@ study_tasks.delete_if do |task|
   end
   ! good
 end
+sample_tasks.concat remote_sample_tasks
 sample_tasks.each do |task|
   Sample.export task.to_sym
 end
 
+study_tasks.concat remote_study_tasks
 study_tasks.each do |task|
   Study.export task.to_sym
 end
