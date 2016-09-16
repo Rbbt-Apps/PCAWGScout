@@ -3,9 +3,22 @@
 - entity_card = EntityCard.new(sample)
 - entity_card.name = entity
 - entity_card.meta do
-  %dl
-    %dt From VCF
-    %dd= Sample.vcf_files([sample.study, sample] * ":").any?
+
+  %h3 Sample tasks
+
+  - task_exports = Sample.synchronous_exports + Sample.asynchronous_exports
+  - task_exports = task_exports.collect{|t| t.to_s}
+  %ul
+    - task_exports.each do |task|
+      - base_url = File.join("/", "Sample", task)
+      - defaults = Sample.rec_input_defaults(task.to_sym) || {}
+      - task_url = base_url +  "?" << Misc.hash2GET_params(defaults.merge(:jobname => entity))
+      %li
+        %a(href=task_url)= task
+        - if defaults.any?
+          - task_url = base_url +  "?" << Misc.hash2GET_params(:jobname => entity)
+          %a(href=task_url) 
+            %i.ui.settings.icon
 
 - entity_card.description do
 

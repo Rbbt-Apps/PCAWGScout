@@ -32,6 +32,21 @@
               = fragment do
                 = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Samples in #{study} matrix #{matrix}"
 
+  %h3 Cohort tasks
+
+  - task_exports = Study.synchronous_exports + Study.asynchronous_exports
+  - task_exports = task_exports.collect{|t| t.to_s}
+  %ul
+    - task_exports.each do |task|
+      - base_url = File.join("/", "Study", task)
+      - defaults = Study.rec_input_defaults(task.to_sym) || {}
+      - task_url = base_url +  "?" << Misc.hash2GET_params(defaults.merge(:jobname => entity))
+      %li
+        %a(href=task_url)= task
+        - if defaults.any?
+          - task_url = base_url +  "?" << Misc.hash2GET_params(:jobname => entity)
+          %a(href=task_url) 
+            %i.ui.settings.icon
 
 - if entity.has_genotypes?
   - entity_card.add_section "Mutations and Genes" do
