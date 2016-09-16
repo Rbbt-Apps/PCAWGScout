@@ -1,0 +1,44 @@
+- entity = controller.entity
+- if controller.actions.any?
+  .card_actions.ui.segment#entity_actions
+    .action_controller
+      .ui.buttons.controls
+        %a.item.reload.ui.icon.disabled.button(href="#" title="Refresh action")
+          %i.icon.repeat
+
+        -#%a.item.description.ui.icon.disabled.button(href="#" title="View description")
+          %i.icon.book
+
+        -#%a.item.parameters.ui.icon.disabled.button(href="#" title="Configure parameters")
+          %i.icon.setting
+
+        
+        -#%a.item.pin.ui.icon.disabled.button(href="#" title="Make this configuration default")
+          %i.icon.pin
+
+        
+        -#%a.item.url.ui.icon.disabled.button(href="#" title="Bookmark action")
+          %i.icon.bookmark
+
+      .ui.buttons.action_menu
+        - last_resource = nil
+        - controller.actions.each do |action, text, resource, params|
+          //.ui.item.button(class="#{last_resource and last_resource != resource ? "new_resource" : ""}" attr-resource="#{resource}")
+          - case
+          - when AnnotatedArray === entity
+            - id = params.delete :id if Hash === params
+            - id = controller.id if id.nil?
+            = entity.list_action_link action, text, id, params.merge(:reuse => true, :class => 'ui item button')
+          - when TSV === entity
+            - id = params.delete :id if Hash === params
+            - id = controller.id if id.nil?
+            - type = page_entity_type
+            - column = page_entity_map_column
+            %a.entity_map_action.ui.item.button(href="#{Entity::REST.entity_map_action_url id, type, column, action}")= text 
+          - else
+            = entity.action_link action, text, params.merge(:class => 'ui item button')
+          - last_resource = resource
+
+      .action_progress.ui.info.message
+
+    .action_loader.ui.very.basic.segment<

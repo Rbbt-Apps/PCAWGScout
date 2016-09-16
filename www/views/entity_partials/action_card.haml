@@ -1,0 +1,55 @@
+:sass
+  .action_card > .content
+    width: 100%
+    //& > .action_parameters, & > .action_content
+      width: 100%
+.action_card.ui.grid
+  .ui.basic.segment.content
+    .ui.header.basic.segment
+      %h1.name
+        - case page_type
+        - when 'entity_action'
+          = @entity.respond_to?(:name) ? @entity.name || @entity : @entity
+        - when 'entity_list_action'
+          = Misc.humanize page_entity_list
+        - when 'entity_map_action'
+          = Misc.humanize page_entity_map
+      %p.long_name
+        = Misc.humanize page_action if page_action
+
+    - if card.description
+      - case card.description
+      - when String
+        %p= card.description
+      - when Proc
+        = capture_haml &card.description
+      - else
+        - raise "Unknown description: #{fff card.description}"
+
+    - if card.action_parameters
+      = action_parameters &card.action_parameters
+
+    - exception_html = nil
+    - require_parameters = false
+    - card.requires.each do |input|
+      - if Array === input
+        - inputs, input_block = input
+        - if inputs.select{|input| @params[input.to_s].nil? }.any?
+          - require_parameters = true
+          - exception_html = capture_haml  &input_block
+          - break
+
+      - else
+        - if @params[input.to_s].nil?
+          - require_parameters = true
+          - break
+
+    - if exception_html
+      = exception_html
+
+    .action_content
+      - if require_parameters
+        %p Please configure the parameters to execute the action
+      - else
+        = capture_haml &block
+

@@ -1,0 +1,141 @@
+- entity = card.entity
+- entity_id = "entity__" + entity.id
+- default = entity.respond_to?(:default)? entity.default || entity.to_s : entity.to_s
+
+:sass
+  .entity_card 
+    .card_sidebar
+      min-width: 300px
+      transition: margin-left 0.5s, margin-right 0.5s, max-height 0.5s, min-width 1s
+      & + .column
+        transition: width 0.5s, max-width 0.5s
+        max-width: calc(100% - 300px)
+      &.hidden
+        overflow: hidden
+        margin-left: calc(-25% - 32px) !important
+        margin-right: 32px !important
+        min-width: 25% !important
+        max-height: 500px
+      &.hidden + .column
+        //min-width: 100% !important
+        transition: width 1s, max-width 1s
+        max-width: 100% !important
+        width: 100% !important
+        margin: 0px
+      .sub.item
+        margin-left: 2em
+
+    .card_actions
+      width: 100% !important
+        
+:deferjs
+  register_dom_update('.entity_card > .content > .card_sidebar > .item.close', function(link){
+    var link = $(link)
+    link.click(function(){
+      $(this).parent('.card_sidebar').addClass('hidden')
+      return false
+    })
+  })
+
+  register_dom_update('.card_sidebar_open', function(link){
+    var link = $(link)
+    link.click(function(){
+      $(this).parents('.entity_card').first().find('.card_sidebar').toggleClass('hidden')
+      return false
+    })
+  })
+
+  register_dom_update('.card_sidebar > .item', function(link){
+    link.click(function(){
+      $(this).parents('.entity_card').first().find('.card_sidebar').addClass('hidden')
+    })
+  })
+      
+.entity_card.ui.grid(data-entity=entity data-entity-id=default data-entity-type="#{entity.base_type}" data-entity-format="#{entity.respond_to?(:format) ? entity.format : ""}" data-entity-info="#{entity.info.to_json}")
+  /-- card_sidebar --
+  .ui.four.wide.column.vertical.card_sidebar.menu.hidden
+    - if card.sections.any?
+      %h3 Sections
+      - card.sections.each do |name,section|
+        %a.item(href="##{Misc.snake_case(name)}")= Misc.humanize(name)
+      %a.item(href="#entity_actions") Entity actions
+
+    - info = card.entity.info
+    - if info.any? or card.meta or card.list_container
+      %h3 Meta data
+      .meta
+        - if info.any?
+          .entity_info
+            = hash2dl(info)
+
+        - case card.meta
+        - when nil
+        - when Hash
+          = hash2dl(card.meta)
+        - when Proc
+          = fragment :meta, &card.meta
+
+    - if card.list_container
+      %h3 Related lists
+      .list_container
+        = list_container_render(card.list_container)
+
+
+  .ui.twelve.wide.column.content
+    .ui.header.basic.segment
+      .content
+        %h1.header.name
+          - case card.name
+          - when nil
+            = entity.respond_to?(:name) ? entity.name || entity : entity
+          - when String
+            = card.name
+          - when Proc
+            = fragment :name, &card.name
+        %p.long_name
+          - case card.long_name
+          - when nil
+            = entity.respond_to?(:long_name) ? entity.long_name : entity.base_type.to_s
+          - when String
+            = card.long_name
+          - when Proc
+            = fragment :long_name, &card.long_name
+
+    .ui.basic.segment.controls.buttons
+      .ui.icon.button.card_sidebar_open
+        %i.bars.icon
+
+    .ui.basic.segment(id='description')
+      /-- content --
+      - case card.description
+      - when nil
+        - if entity.respond_to?(:description) and entity.description
+          /-- description --
+          .description.ui.very.basic.segment<
+            %p= entity.description
+      - when String
+        /-- description --
+        .description.ui.very.basic.segment<
+          :documentation
+            #{card.description}
+      - when Proc
+        /-- description --
+        .description.ui.very.basic.segment<
+          = fragment :description, &card.description
+
+      - if defined? block and block
+        /-- description block --
+        .description.ui.basic.segment<
+          = capture_haml &block
+
+      - card.sections.each do |name,section_block|
+        .ui.very.basic.segment(id="#{Misc.snake_case(name)}")
+          %h3.header
+            = Misc.humanize(name)
+          .content
+            = fragment name, &section_block
+
+    - if card.action_controller
+      /-- actions --
+      = action_controller_render(card.action_controller)
+
