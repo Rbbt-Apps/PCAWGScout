@@ -81,7 +81,7 @@ sample_tasks.delete_if do |task|
   deps = [task]
   while deps.any?
     task = deps.shift
-    good = false if task =~ /genomic.*mutation/ or task =~ /vcf/ or task =~ /homozy/ or task =~ /cnv/
+    good = false if task =~ /genomic.*mutation/ or task =~ /vcf/ or task =~ /homozy/ or task =~ /cnv/ or task =~ /^em_/ or task =~ /mutation_/
     break if not good
     next if Sample.task_dependencies[task.to_sym].nil?
     task_deps = Sample.task_dependencies[task.to_sym].collect do |d|
@@ -106,20 +106,31 @@ remote_study_tasks =  Study.remote_tasks.keys.collect{|t| t.to_s}
 study_tasks.delete_if do |task| 
   good = true
   deps = [task]
+  seen = Set.new
   while deps.any?
     task = deps.shift
-    good = false if task =~ /genomic.*mutation/ or task =~ /vcf/ or task =~ /homozy/ or task =~ /cnv/
+    good = false if task =~ /genomic.*mutation/ or task =~ /vcf/ or task =~ /homozy/ or task =~ /cnv/ or task =~ /^em_/ or task =~ /mutation_/
     break if not good
-    next if Study.task_dependencies[task.to_sym].nil?
-    task_deps = Study.task_dependencies[task.to_sym].collect do |d|
+    next if seen.include? task
+    seen << task
+    next if Study.task_dependencies[task.to_sym].nil? and Sample.task_dependencies[task.to_sym].nil?
+    task_deps = (Study.task_dependencies[task.to_sym] || Sample.task_dependencies[task.to_sym]).collect do |d|
+      begin
       case d
+      when Proc
+        d = d.dependency
+        raise TryAgain
       when String,Symbol
         d.to_s
       when Array
         next if d[0] != Sample and d[0] != Study
         d[1].to_s 
       end
+      rescue TryAgain
+        retry
+      end
     end
+    iii [task, task_deps]
     rest_tasks = task_deps.compact - remote_study_tasks
     deps.concat rest_tasks
     deps.uniq!
