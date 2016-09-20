@@ -23,13 +23,12 @@
   - if defined? study and study
     - Study.setup(study)
 
-    %h3= study.link
-    %dl
-      %dt Donors with #{study}
-      %dd
-        = study.donors * ", "
+    
+    %h3
+      Click to open report
+      = study.link
 
-
+  -#
     = fragment do
       :sass
         #plot
