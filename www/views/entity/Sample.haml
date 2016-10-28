@@ -1,7 +1,13 @@
 - require 'rbbt/tsv/excel'
+- require 'rbbt/util/colorize'
+
 - sample = entity
 - entity_card = EntityCard.new(sample)
 - entity_card.name = entity
+- study = PCAWG.all_abbreviations.select do |abbr|
+  - abbr = Study.setup(abbr.dup)
+  - abbr.donors.include? sample
+- study = Study.setup(study.first)
 - entity_card.meta do
 
   %h3 Sample tasks
@@ -20,6 +26,14 @@
           %a(href=task_url) 
             %i.ui.settings.icon
 
+  %dl
+    - histo = PCAWG.donor_histology.tsv
+    - fields = histo.fields
+    - fields.zip(histo[sample]).each do |key,value|
+      %dt=key
+      %dd=value * ", "
+
+
 - entity_card.description do
 
   - if sample.num_genomic_mutations > 0
@@ -37,9 +51,43 @@
       %dt Damaged genes
       %dd= sample.get_genes(:damaged).list_link :length, "Damaged genes in #{ sample }"
 
-    = table :table_id => "Sample gene status#{ sample }" do
+    = table :table_id => "Sample gene status #{ sample }" do
       - sample.gene_sample_mutation_status
 
+    = table :table_id => "Sample SV boundaries #{ sample }", :class => 'sv_table' do
+      - tsv =  sample.SV_boundaries
+      - tsv.namespace = PCAWG.organism
+      - tsv.add_field "Type" do |key,values|
+        - key.split(":")[2]
+      - tsv
+
+
+    - if sample.has_expression?
+      - boundary_genes =  sample.SV_boundaries.values.compact.flatten.uniq
+      - boundary_gene_color = {}
+      - mat = study.matrix(:gene_expression).tsv
+      - mutation_genes = sample.gene_sample_mutation_status.keys
+      - (mutation_genes + boundary_genes).each do |gene|
+        - values = mat[gene]
+        - next if values.nil?
+        - next if values.compact.flatten.uniq.length < 3
+        - value = values.values_at(*sample.expression_samples).flatten.first.to_f
+        - color = Colorize.rank_gradient(values.flatten.compact.collect{|v| v.to_f}, value, "#0F0", "#F00")
+        - boundary_gene_color[gene] = color
+
+      :deferjs
+        var g_color = #{boundary_gene_color.to_json}
+        register_dom_update('.entity.Gene', function(elems){
+          $(elems).each(function(i,e){
+          var gene = $(e).attr('attr-entity_id')
+          var color = g_color[gene];
+          console.log([gene, color])
+          $(e).css('color', color)
+          })
+        })
+        update_dom()
+
+    
 - entity_card.action_controller = default_action_controller sample
 
 = entity_card_render entity_card

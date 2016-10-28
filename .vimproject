@@ -12,6 +12,12 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
   sinatra=sinatra{
    sections.rb
   }
+  rbbt=rbbt{
+   entity=entity{
+    structural_variant.rb
+   }
+
+   }
  }
  www=www{
   views=views{
@@ -29,7 +35,19 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
    entity=entity{
     Sample.haml
     Study.haml
+    Study=Study{
+     gene_list_report.haml
+     gene_report.haml
+     graph.haml
+     SV_summary.haml
+    }
    }
+   entity_list=entity_list{
+    Sample=Sample{
+     characteristic_alterations.haml
+     clinical_variates.haml
+     differential_expression.haml
+    }
   }
  }
 }

@@ -7,7 +7,7 @@
 = action_card_render action_card do
   - other_factors = study.sample_info.fields.select{|name| name = Misc.snake_case(name); locals[name] and locals[name] != "false"}
   - other_factors << 'BRCA status' if  locals["BRCA_status"] and locals["BRCA_status"] != "false"
-  - main_field = "donor_survival_time"
+  - main_field = "donor_interval_of_last_followup"
   - main_event = "donor_vital_status"
 
   - sample_info = study.sample_info.slice [main_field, main_event]
@@ -18,33 +18,40 @@
   - sample_info.add_field "Event" do |k,values|
     - values[main_event].first == 'deceased' ? [1] : [0]
 
-  - Log.tsv sample_info
-
+  - pvalue = nil
   = resource("Survival plot for #{list_id}.png", nil, :image) do |result_file|
-    :ruby
-      sample_info.R <<-EOF
-        library(survival)
-        library(graphics)
+    - TmpFile.with_file do |pvaluefile|
+      :ruby
+        sample_info.R <<-EOF
+          library(survival)
+          library(graphics)
 
-        data$In.list=NA
-        data[#{R.ruby2R(list)}, "In.list"] = TRUE
-        data[#{R.ruby2R(study.sample_info.keys - list)}, "In.list"] = FALSE
-        names(data) <- make.names(names(data))
+          data$In.list=NA
+          data[#{R.ruby2R(list)}, "In.list"] = TRUE
+          data[#{R.ruby2R(study.sample_info.keys - list)}, "In.list"] = FALSE
+          names(data) <- make.names(names(data))
 
-        main.field = make.names('#{main_field}')
-        main.event = make.names('Event')
+          main.field = make.names('#{main_field}')
+          main.event = make.names('Event')
 
-        surv = Surv(data[[main.field]], data[[main.event]])
+          surv = Surv(data[[main.field]], data[[main.event]])
 
-        rbbt.png_plot('#{result_file}', 600, 600, 'plot(survfit(surv ~ data$In.list), lty = 2:3); \
-                                                        legend(100, .9, c("In list", "Rest"), lty = 3:2);
-                                                        title("Kaplan-Meier Curves\\nfor #{list_id}"); \
-                                                       '\
-        )
+          rbbt.png_plot('#{result_file}', 600, 600, 'plot(survfit(surv ~ data$In.list), lty = 2:3); \
+                                                          legend(100, .9, c("In list", "Rest"), lty = 3:2);
+                                                          title("Kaplan-Meier Curves\\nfor #{list_id}"); \
+                                                        '\
+          )
 
-        data = NULL
-      EOF
+          pvalue = summary(coxph(surv ~ data$In.list))$logtest[3]
+          cat(pvalue, file='#{pvaluefile}')
+          cat(pvalue, file='#{pvaluefile}')
+          data = NULL
+        EOF
+      - pvalue = Open.read(pvaluefile)
 
+  %p
+    Pvalue:
+    = pvalue
 
   
 -#

@@ -1,0 +1,82 @@
+- require 'bio-svgenes'
+- require 'rbbt/entity/chromosome_range'
+
+- entity_card = EntityCard.new entity
+- name = entity.respond_to?(:name)? entity.name || entity : entity
+
+- if not entity.respond_to?(:long_name)
+  - if entity.respond_to?(:name)
+    - entity_card.name = [entity.base_type, entity] * ": "
+  - else
+    - entity_card.name = entity.base_type
+  - entity_card.long_name = name
+
+
+- list_container = ListContainer.new
+- list_container.add "Genes for #{[entity.base_type, name] * ": "}", entity.genes
+- entity_card.list_container = list_container
+
+- entity_card.action_controller = default_action_controller entity
+
+- entity_card.description do
+  - size = 1000
+  - color = 'green'
+  - sides = {"Left" => entity.left_range(size), "Right" => entity.right_range(size)}
+  - sides.each do |side, chr_range|
+    - chr_range = ChromosomeRange.setup(chr_range, entity.organism)
+    .ui.segment
+      .ui.header 
+        #{side} site
+        = chr_range
+      .ui.content 
+        - svg = nil
+
+        :ruby
+          p = Bio::Graphics::Page.new(:width => 800,
+                                      :height => 200,
+                                      :number_of_intervals => 10)
+
+
+          boundary_track = p.add_track(:glyph => :generic,
+                                      :name => "Boundary (#{size} bases)",
+                                    :label => true  )
+
+          boundary_track.add Bio::Graphics::MiniFeature.new(:start => chr_range.begin, :end => chr_range.end)
+          boundary_track.add Bio::Graphics::MiniFeature.new(:start => chr_range.begin + size, :end => (chr_range.begin + size)+1)
+
+
+          chr_range.genes.each do |gene|
+            range = gene.chr_range
+            name = gene.name || gene
+
+            gene_track = p.add_track(:glyph => :transcript,
+                                    :name => name, :fill_color => color,
+                                    :label => true  )
+
+            exon_positions = []
+            pi = gene.principal_transcripts.first
+            if pi.nil?
+              gene.exons.position.each do |chr,start,eend|
+                exon_positions += [start, eend]
+              end
+            else
+              gene.principal_transcripts.first.exons.position.each do |chr,start,eend|
+                exon_positions += [start, eend]
+              end
+            end
+
+            gene_track.add Bio::Graphics::MiniFeature.new(:exons => exon_positions, :start => range.begin, :end => range.end, :strand => (gene.strand == "1" ? '+' : '-'), :name => name, :fill_color => color,  :params => {:title => name, :class => "title"})
+
+          end
+
+
+          svg = p.get_markup
+
+        :sass
+          .ui.segment.chromosome_range > svg
+            background-color: white
+        .ui.segment.chromosome_range= svg
+
+
+= entity_card_render entity_card
+

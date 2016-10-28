@@ -1,0 +1,18 @@
+
+- result = entity.SV_summary
+- good_fields = result.fields.dup
+- good_fields = good_fields.delete_if{|f| f =~ /express/i} 
+
+- tsv = result
+- tsv = tsv.slice good_fields
+
+- pvalues = good_fields.collect{|f| f =~ /p-value/}
+
+- tsv.fields = good_fields
+
+- pvalues.each do |field|
+  - header field, "NumericValue"
+- header "Fusion donors", "Sample"
+= table do
+  - tsv
+

@@ -1,0 +1,71 @@
+-Thread.current['studies'] = user_studies[user] 
+
+- action_card = ActionCard.new do 
+  - input :study, :select, "Study code", nil, :select_options => ["PCAWG"] + PCAWG.all_abbreviations
+  - input :organism, :hidden, "Organism code", entity.organism
+
+- action_card.require :study
+= action_card_render action_card do
+  %h1= entity.name
+  - sequence = entity.sequence
+  - uni = entity.to("UniProt/SwissProt Accession")
+  - regions = []
+  - names = []
+
+  - domains = Structure.corrected_interpro_features(uni, sequence)
+  - pfam_index =InterPro.pfam_index
+  - name_index =Pfam.name_index
+  - domains.each do |d|
+    - code = d[:code]
+    - pfam = pfam_index[code]
+    - next if pfam.nil?
+    - name = name_index[pfam]
+    - names << name
+    - coord = d.values_at(:start, :end) * "-"
+    - regions.push({:name => name, :coord => coord})
+
+  - if study == "PCAWG"
+
+    - require 'rbbt/util/colorize'
+    - all_mutations = []
+
+    - TSV.traverse PCAWG.all_abbreviations, :bar => @step.progress_bar("Processing studies"), :cpus => 5, :into => all_mutations do |study|
+      - study = Study.setup(study.dup)
+      
+      - protein_mis = study.mi.select{|mi| p = mi.partition(":").first; p == entity}
+      - coord_type_count = {}
+      - mutations = study.mi.select{|mi| p = mi.partition(":").first; p == entity}.collect do |mi|
+        - prot,_set,c = mi.partition(":")
+        - pos = c.scan(/\d+/).first
+        - coord_type_count[pos] ||= 0
+        - coord_type_count[pos] += 1
+
+      - mutations = []
+      - coord_type_count.each{|pos,c| mutations.push({:coord => pos, :category => study, :value => c})}
+      - mutations.extend MultipleResult
+      - mutations
+
+    - matched_studies = all_mutations.collect{|m| m[:category]}.uniq
+    - colors = Colorize.distinct(matched_studies)
+
+    - colorMap = matched_studies.zip(colors)
+    - colorMap = PCAWG.abbr_colors
+    = tool 'needle', :title => entity.name, :regions => regions, :mutations => all_mutations, :colorMap => colorMap, :config => {:maxCoord => sequence.length}
+
+  - else
+
+    - study = Study.setup(study.dup)
+    
+    - protein_mis = study.mi.select{|mi| p = mi.partition(":").first; p == entity}
+    - coord_type_count = {}
+    -  study.mi.select{|mi| p = mi.partition(":").first; p == entity}.collect do |mi|
+      - prot,_set,c = mi.partition(":")
+      - pos = c.scan(/\d+/).first
+      - coord_type_count[pos] ||= 0
+      - coord_type_count[pos] += 1
+    - mutations = []
+    - coord_type_count.each{|pos,c| mutations.push({:coord => pos, :category => 'missense_variant', :value => c})}
+
+    = tool 'needle', :title => entity.name, :regions => regions, :mutations => mutations, :config => {:maxCoord => sequence.length}
+
+

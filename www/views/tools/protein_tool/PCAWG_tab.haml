@@ -1,0 +1,90 @@
+.highlight.submit.ui.button Highlight
+-#.ui.message
+  In JMol positions with 1 mutation are white, with 2 are green, with 3 are orange, and with more than 3 are red
+-#%select(name='color')
+  - colors.each do |c|
+    %option(value=c)= c
+
+
+- donor_changes = TSV.setup({}, :key_field => PCAWG::DONOR_FIELD, :fields => ["Change"], :type => :flat, :namespace => PCAWG.organism)
+- PCAWG.all_donors.each do |donor|
+  - donor = Sample.setup(donor.dup, :cohort => "PCAWG")
+  - donor_changes[donor] = donor.mi.select{|mi| mi.include? protein}.collect{|mi| change = mi.split(":").last} 
+
+- tsv = donor_changes.to_double.reorder "Change", [PCAWG::DONOR_FIELD], :merge => true
+
+- tsv.add_field "Residue" do |change,values|
+  - change.scan(/\d+/)[0]
+
+- tsv = tsv.attach PCAWG.donor_histology.tsv
+
+- header "Residue", "NumericValue"
+= table :table_id => "PCAWG mutations for #{ protein.name || protein }", :span => true do
+  - tsv
+
+:deferjs
+
+  $('.PCAWG .highlight.submit').click(function(){
+    var link = $(this);
+    var PCAWG = link.parents('.PCAWG').first();
+    var protein_tool = PCAWG.parents('.protein_tool').first();
+    var svg_element  = protein_tool.find('.svg').first();
+    var jmol_element  = protein_tool.find('.JMol').first();
+
+    var table = PCAWG.find('table');
+    var url = table.attr('attr-url');
+    var filter = table.attr('attr-filter');
+
+    url = add_parameter(url, '_format', 'json')
+    url = add_parameter(url, '_page', 'all')
+    if (undefined != filter){ url = add_parameter(url, '_filter',  escape(filter)) }
+
+    var color = 'red'
+    var abbr_colors = #{PCAWG.abbr_colors.to_json}
+
+    $.ajax({
+      url: url,
+      success: function(data){
+        data = JSON.parse(data);
+        var change_positions_abbr = {};
+        var change_counts = {}
+
+        forHash(data, function(change, values){
+          var samples = values[0];
+          var abbrs = values[3];
+          var m;
+          if (m = change.match(/[A-Z](\d+)[A-Z]/)){
+            var pos = parseInt(m[1])
+            for (var i = 0; i < abbrs.length; i++){
+              var abbr = abbrs[i];
+              var change_positions;
+              if (change_positions_abbr[abbr] === undefined){
+                change_positions = change_positions_abbr[abbr] = [];
+              }else{
+                change_positions = change_positions_abbr[abbr];
+              }
+              change_positions.push(pos);
+            }
+            if (change_counts[pos] === undefined){
+              change_counts[pos] = samples.length
+            }else{
+              change_counts[pos] = change_counts[pos] + samples.length
+            }
+          }
+        })
+
+        var protein_tool = $('.protein_tool#' + '#{id}');
+
+        rbbt.jmol.color_positions(jmol_element, change_counts);
+        for (abbr in change_positions_abbr){
+          var color = abbr_colors[abbr]
+          console.log([abbr, color])
+          rbbt.svg.mark_positions(svg_element, change_positions_abbr[abbr], color);
+        }
+
+      }
+    })
+    return false;
+  })
+
+
