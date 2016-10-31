@@ -1,0 +1,88 @@
+- study = list.study
+
+- action_card = ActionCard.new do
+  - if study.matrices.length > 1
+    - input :matrix, :select, "Matrix to use", study.matrices.first, :select_options => study.matrices
+  - else
+    - input :matrix, :string, "Matrix to use", study.matrices.first, :hide => true
+  - input :contrast, :select, "Background list", nil, :select_options => {'none' => 'Rest of samples', 'genotyped' => "Genotyped samples"}, :html_options => {:class => 'favourite_lists', :type => 'Sample'}
+  - input :threshold, :float, "Significance threshold for (non-adjusted) p-value", 0.1
+  - input :database, :select, "Perform enrichment analysis on deregulated genes", :none, :select_options => [:none] + Enrichment::DATABASES 
+
+ 
+- action_card.require :threshold
+= action_card_render action_card do
+  - type = matrix
+  - matrix = study.matrix(matrix)
+
+  - case contrast
+  - when nil, 'none'
+    - rest = study.samples - list
+  - when 'genotyped'
+    - rest = study.samples.select_by(:has_genotype?) 
+  - else
+    - rest = Entity::List.load_list("Sample", contrast, user)
+
+  - donor_field = nil
+  - donor_field = study.sample_info.fields.select{|f| f =~ /RNA/i and f =~ /tumou?r/i}.first if donor_field.nil?
+  - donor_field = study.sample_info.fields.select{|f| f =~ /rna_sample/}.first if donor_field.nil?
+  - donor_field = study.sample_info.fields.select{|f| f =~ /specimen/}.first if donor_field.nil?
+  - donor_field = study.sample_info.fields.select{|f| f =~ /donor/}.first if donor_field.nil?
+
+  - list = study.match_samples(list, matrix.samples, donor_field)
+  - rest = study.match_samples(rest, matrix.samples, donor_field) - list
+
+  - diffs = matrix.differential(list, rest)
+
+  - Open.open(diffs) do |stream|
+    - if not TSV.parse_header(stream).fields.include? "p.values"
+      - raise "The where not enough samples with gene expression data to obtain a p-value"
+     
+
+  - threshold = threshold.to_f
+
+  - up_genes = nil
+  - down_genes = nil
+  = table :table_id => "All" do
+    - tsv = diffs.tsv :namespace => study.organism
+    - tsv.key_field = "Ensembl Gene ID" unless Entity.formats.include? tsv.key_field
+    - tsv
+
+  - entities = nil
+
+  =table :table_id => "Up-regulated genes" do
+    - tsv = diffs.tsv :namespace => study.organism
+    - tsv.key_field = "Ensembl Gene ID" unless Entity.formats.include? tsv.key_field
+    - new = tsv.select('p.values'){|v| v = v.to_f; v > 0 and v <= threshold }
+    - up_genes = new.keys
+    - new
+
+  - if up_genes.respond_to? :link
+    %p
+      Entity list:
+      = up_genes.list_link :length, "Overexpressed (#{type} - threshold #{threshold}) in #{list_id}"
+
+
+  =table :table_id => "Down-regulated genes" do
+    - tsv = diffs.tsv :namespace => study.organism
+    - tsv.key_field = "Ensembl Gene ID" unless Entity.formats.include? tsv.key_field
+    - new = tsv.annotate({})
+    - tsv.each do |k,v| new[k] = v.collect{|_v| - _v.to_f } end
+    - new = new.select('p.values'){|v| v > 0 and v <= threshold }
+    - down_genes = new.keys
+    - new
+
+ 
+  - if down_genes.respond_to? :link
+    %p
+      Entity list:
+      = down_genes.list_link :length, "Underexpressed (#{type} - threshold #{threshold}) in #{list_id}"
+
+
+  - database = :none if database.nil?
+  - if database.to_s != "none"
+    - deregulated_genes = up_genes + down_genes
+    = table :page => '1~p-value' do
+      - Enrichment.job(:enrichment, list_id + ' database', :database => database, :list => deregulated_genes).run
+
+
