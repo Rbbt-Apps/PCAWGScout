@@ -1,0 +1,74 @@
+- action_card = ActionCard.new
+ 
+= action_card_render action_card do
+  - damage_db = PCAWG.gene_damage_analysis.tsv :persist => true
+
+  - tsv = TSV.setup({}, :key_field => "Ensembl Gene ID",
+    :fields => ["PCAWG mutations", "Mutations / Protein size", "Mean mut. distance", "Recurrent %", "Hotspot statistic", "Avg. damage score", "Bg. Avg. damage score", "Damage t-test p-value"], 
+    :type => :list, :cast => :to_f,:namespace => list.organism, )
+
+  - TSV.traverse list.sort_by{|gene| gene.name || ""}.ensembl.compact, :type => :array, :bar => @step.progress_bar("Processing genes") do |gene|
+    - log gene.name
+    - next if gene.transcripts.nil? or gene.transcripts.empty?
+    - protein = gene.proteins.sort_by{|s| s.sequence.to_s.length}.last
+
+    - protein_mutations = PCAWG.knowledge_base.subset(:gene_principal_isoform_mutations, "Gene" => [gene], "Mutated Isoform" => :all).target_entity
+    - protein_mutations ||= []
+    - protein_mutations.select!{|p| m = p.match(/ENSP.*:([A-Z*])\d+([A-Z*])/) and m[1] != m[2]}
+
+    - if protein_mutations and protein_mutations.any?
+      - positions = protein_mutations.position.sort
+      - distances = positions[1..-1].zip(positions).collect{|p1,p2| p1 - p2}
+      - mean_mut_distance = Misc.mean distances
+      - protein_size = protein.sequence.length
+      - hotspot = distances.inject(0){|acc,e|  acc += 1 if e == 0; acc}.to_f / distances.length
+      - unif = (0..1000).to_a.collect{ rand }
+      - scaled_positions = positions.collect{|p| p.to_f / protein_size}
+      - hotspot_stat = R.eval "ks.test(#{R.ruby2R(scaled_positions)}, #{R.ruby2R(unif)})$p.value"
+
+    - else
+      - protein_size = Misc.max(gene.transcripts.sequence.collect{|s| s.nil? ? 0 : s.length}) / 3 if gene.transcripts and gene.transcripts.any?
+      - #protein_size = gene.sequence.length.to_f / 3 if protein_size.nil? or protein_size == 0
+      - protein_size = 999
+      - mean_mut_distance = nil
+      - hotspot = 0
+      - hotspot_stat = 1
+
+    - damage_avg, bg_damage_avg, damage_pvalue = damage_db[gene] ? damage_db[gene].values_at("Avg. damage score", "Bg. Avg. damage score", "T-test p-value") : [0,0,1]
+    - tsv[gene] = [protein_mutations.length, protein_mutations.length.to_f / protein_size, mean_mut_distance || -1, hotspot, hotspot_stat, damage_avg, bg_damage_avg, damage_pvalue]
+
+  - header "PCAWG mutations", "NumericValue"
+  - header "Mutation ratio", "NumericValue"
+  - header "Mutations / Protein size", "NumericValue"
+  - header "Mean mut. distance", "NumericValue"
+  - header "Recurrent %", "NumericValue"
+  - header "Hotspot statistic", "NumericValue"
+  - header "Avg. damage score", "NumericValue"
+  - header "Avg. background damage score", "NumericValue"
+  - header "Damage score t-test p-value", "NumericValue"
+  = table :table_id => "Details for #{ list_id }", :page => '1~-PCAWG mutations' do
+    - tsv
+
+  - min = 1.0/1_000_000
+  - tsv = tsv.add_field "Log10(damage p-value)" do |k,v|
+    - pvalue = v["Damage t-test p-value"] 
+    - pvalue = min if pvalue < min
+    - if pvalue == 1
+      - 0
+    - else
+      - -Math.log10(pvalue)
+
+  - tsv = tsv.add_field "Log10(hotspot p-value)" do |k,v|
+    - pvalue = v["Hotspot statistic"] 
+    - pvalue = min if pvalue < min
+    - if pvalue == 1
+      - 0
+    - else
+      - -Math.log10(pvalue)
+
+  = tool :nvd3, :plot => :scatter, :data => tsv, 
+    :size => "Mutations / Protein size", :y => "Log10(hotspot p-value)", :x => "Log10(damage p-value)", 
+    :width => "100%", :height => '600px',
+    :title => "Gene PCAWG overview",
+    :caption => "(Y) -Log10(p-value) of non-uniformity ~ (X) -Log10(p-value) of damage bias; (Size) Mutations by protein AA"
+

@@ -3,6 +3,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
   entities
   remote_tasks
   workflows
+  requires
   app.d=app.d{
    post.rb
   }
@@ -23,6 +24,11 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
   views=views{
    main.haml
    studies.haml
+   tools=tools{
+    protein_tool=protein_tool{
+     PCAWG_tab.haml
+    }
+   }
    entity_partials=entity_partials{
     action_card.haml
     action_controller.haml
@@ -41,10 +47,18 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
      graph.haml
      SV_summary.haml
     }
+    Protein=Protein{
+     needle-plot.haml
+     protein_feature_incidence.haml
+    }
    }
    entity_list=entity_list{
+    Gene=Gene{
+     mutation_plot.haml
+    }
     Sample=Sample{
      characteristic_alterations.haml
+     tiles.haml
      clinical_variates.haml
      differential_expression.haml
     }

@@ -7,7 +7,19 @@
 
 
 - donor_changes = TSV.setup({}, :key_field => PCAWG::DONOR_FIELD, :fields => ["Change"], :type => :flat, :namespace => PCAWG.organism)
-- PCAWG.all_donors.each do |donor|
+
+- gene = protein.gene
+- incidence = Study.setup("PCAWG").mi_incidence(:job).produce.path.tsv :grep => protein
+- Log.tsv incidence
+- incidence.each do |mi,donors|
+  - next unless mi =~ /ENSP/
+  - p, change = mi.split(":")
+  - next if change =~ /([A-Z]):([A-Z*])$/ and $1 == $2
+  - donors.flatten.each do |donor|
+    - donor_changes[donor] ||= []
+    - donor_changes[donor] << change 
+
+-# PCAWG.all_donors.each do |donor|
   - donor = Sample.setup(donor.dup, :cohort => "PCAWG")
   - donor_changes[donor] = donor.mi.select{|mi| mi.include? protein}.collect{|mi| change = mi.split(":").last} 
 
@@ -17,6 +29,7 @@
   - change.scan(/\d+/)[0]
 
 - tsv = tsv.attach PCAWG.donor_histology.tsv
+- Log.tsv tsv
 
 - header "Residue", "NumericValue"
 = table :table_id => "PCAWG mutations for #{ protein.name || protein }", :span => true do

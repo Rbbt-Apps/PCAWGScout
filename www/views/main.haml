@@ -1,6 +1,6 @@
 
-= partial_render('/main/study_statistics')
 = partial_render('/main/pie')
+= partial_render('/main/study_statistics')
 
 - action_card = ActionCard.new do 
   - input :histology_abbreviation, :select, "Donor code", nil, :select_options => ["Ignore"] + PCAWG.all_abbreviations
