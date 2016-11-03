@@ -1,16 +1,21 @@
-
 - require 'rbbt/statistics/fisher'
 - study = list.study
 
 - action_card = ActionCard.new do
   - input :database, :select, "Database of annotations to use in grouping genes", :none, :select_options => [:none] + Enrichment::DATABASES 
 
- 
 = action_card_render action_card do
-  - database = :none if database.nil?
-  - all_donors = study.donors
-  - rest = study.donors - list
+  - database = :none unless defined? database and database
+  - all_donors = Study.setup(list.cohort).samples
+
+  - donors = all_donors
+
   - donor_genes = {}
+  - donors.each do |donor|
+    - if database.to_s == 'none'
+      - donor_genes[donor] = Gene.setup(donor.get_genes(:affected), "Ensembl Gene ID", PCAWG.organism).name
+    - else
+      - donor_genes[donor] = Gene.setup(donor.get_genes(:affected), "Ensembl Gene ID", PCAWG.organism)
 
   - if database.to_s != "none"
     - file, options = Enrichment::REGISTRY[database]
@@ -20,77 +25,134 @@
       - index = Association.index(file, options.merge(:source => options[:target], :source_format => "Ensembl Gene ID", :target => nil, :identifiers => identifier_file))
     - else
       - index = Association.index(file, options.merge(:source_format => "Ensembl Gene ID", :target => nil, :identifiers => identifier_file))
+
     - donor_pathways = {}
-    
-  - all = study.knowledge_base.get_index(:sample_genes).select("affected" => 'true').keys
-  - all.each do |item|
-    - d, _sep, gene = item.partition "~"
-    - donor_genes[d] ||= []
-    - donor_genes[d] << gene
-
-  - selected_class = all_donors.collect{|d| list.include?(d) ? 1 : 0 }
-
-
-  - if database.to_s != "none"
     - donor_genes.each do |donor,genes|
       - path = index.subset(genes, :all)
       - next if path.empty?
-      - donor_pathways[donor] = path.collect{|i| i.partition("~").last}.uniq
+      - target_entity = index.key_field.split("~").last
+      - donor_pathways[donor] = Misc.prepare_entity(path.collect{|i| i.partition("~").last}.uniq, target_entity, :organism => index.namespace)
+    - donor_genes = donor_pathways
 
-  %h3 Genes
-  %dl
-    - gene_pvalues = {}
-    - donor_genes.values.flatten.uniq.each do |gene|
-      - gene_class = all_donors.collect{|d| (donor_genes[d] && donor_genes[d].include?(gene)) ? 1 : 0 }
-      - next if gene_class.select{|v| v == 1}.length < 3
-      - pvalue = Fisher.test_classification(selected_class, gene_class)
-      - next if pvalue > 0.1
-      - gene_pvalues[gene] = pvalue
+  - gene_pvalues = {}
+  - selected_class = all_donors.collect{|d| list.include?(d) ? 1 : 0 }
+  - donor_genes.values.flatten.uniq.each do |gene|
+    - gene_class = all_donors.collect{|d| (donor_genes[d] && donor_genes[d].include?(gene)) ? 1 : 0 }
+    - next if gene_class.select{|v| v == 1}.length < 3
+    - pvalue = Fisher.test_classification(selected_class, gene_class)
+    - next if pvalue > 0.1
+    - gene_pvalues[gene] = pvalue
 
-    - gene_pvalues.sort_by{|g,p| p}.each do |gene, pvalue|
-      - gene = Gene.setup(gene.dup, "Ensembl Gene ID", PCAWG.organism)
-      %dt= gene.link
-      %dd
-        %ul
-          %li
-            Pvalue
-            = pvalue
-          - ds = donor_genes.select{|d,gs| gs.include? gene}.keys
-          %li
-            Donors in list: 
-            = (ds & list) * ", "
-          %li
-            Donors in not list: 
-            = (ds - list) * ", "
-            
-  - if database.to_s != "none"
-    %h3 Pathways
-    %dl
-      - path_pvalue = {}
-      - donor_pathways.values.flatten.uniq.each do |path|
-        - path_class = all_donors.collect{|d| (donor_pathways[d] && donor_pathways[d].include?(path)) ? 1 : 0 }
-        - next if path_class.select{|v| v == 1}.length < 3
-        - pvalue = Fisher.test_classification(selected_class, path_class)
-        - next if pvalue > 0.1
-        - path_pvalue[path] = pvalue
+  - genes = Misc.counts(donor_genes.values.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
+  - list_genes = Misc.counts(donor_genes.values_at(*list).compact.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
+  - genes = list_genes + (genes - list_genes)
+  - donor_genes.values.first.annotate(genes) if donor_genes.values.first.respond_to?(:annotate)
 
-      - field= index.key_field.partition("~").last
-      - path_pvalue.sort_by{|g,p| p}.each do |path, pvalue|
-        - path = Misc.prepare_entity(path, field, :organism =>  PCAWG.organism)
-        - name = path
-        - name = path.name if path.respond_to? :name
-        - name = path.link if path.respond_to? :link
-        %dt= name
-        %dd
-          %ul
-            %li
-              Pvalue
-              = pvalue
-            - ds = donor_pathways.select{|d,ps| ps.include? path}.keys
-            %li
-              Donors in list: 
-              = (ds & list) * ", "
-            %li
-              Donors in not list: 
-              = (ds - list) * ", "
-              
+  - donors = []
+  - genes.each do |gene|
+    - donors << donor_genes.select{|s,gs| gs.include? gene}.collect{|s,g| s}
+
+  - donors = donors.flatten.uniq
+  - donors = (donors & list) + (donors - list)
+
+  - incidence = {}
+
+  - genes.each do |gene|
+    - incidence[gene] = donors.collect do |donor|
+      - donor_genes[donor].include? gene
+
+  :sass
+    $header_size: 8em
+    $tile_margin: 1px
+    $tile_width: calc(#{100.0/donors.length}% - (1px + 8em/#{donors.length}))
+    #tile_plot
+      .donors
+        .donor
+          width: $tile_width
+          margin-left: $tile_margin
+          height: 1em
+          display: inline-block
+          vertical-align: bottom
+      .row
+        margin-bottom: 3px
+        border-bottom: 1px solid #AAA
+        white-space: nowrap
+        height: 2.5em
+        .header
+          line-height: 1.5em
+          width: $header_size
+          display: inline-block
+          vertical-align: top
+      .tile
+        width: $tile_width
+        margin-left: $tile_margin
+        margin-bottom: -0.5em
+        height: 0.5em
+        display: inline-block
+        vertical-align: bottom
+        &[attr-mutation=true]
+          background-color: red
+          &[attr-in_list=false]
+            background-color: blue
+
+  #tile_plot
+
+  :deferjs
+     
+    var donors = #{donors.to_json}
+    var genes = #{genes.to_json}
+    var gene_pvalues = #{gene_pvalues.to_json}
+    var link = #{genes.respond_to?(:link) ? genes.link.to_json : genes.to_json}
+    var in_list_donors = #{(["true"] * (donors & list).length + ["false"] * (donors - list).length).to_json}
+    var incidence = #{incidence.to_json}
+
+    var container_obj = function(graph_model, by_type){ 
+      var rows = mapArray(by_type["Gene"], function(l){ 
+        var r = m('.row', l);
+        return r;
+      });
+      var donors = [m('.header')]
+      for (var i=0; i < in_list_donors.length; i++){
+        var in_list = in_list_donors[i]
+        if (in_list == "true"){
+          donors.push(m('.donor', {style: 'background-color: red'}))
+        }else{
+          donors.push(m('.donor', {style: 'background-color: blue'}))
+        }
+      }
+      var donor_headers = m('div.row.donors', donors) 
+      var rows = m('div.rows', rows) 
+      return m('div.tiles', [donor_headers, rows])
+    }
+
+    var produce_obj = function(code,num,aes){
+      var tiles = [];
+      var pvalue = parseFloat(aes.pvalues[code])
+      var stars = ''
+      if (pvalue < 0.05) stars = ' *'
+      if (pvalue < 0.01) stars = ' **'
+      if (pvalue < 0.001) stars = ' ***'
+      if (pvalue < 0.0001) stars = ' ****'
+      var content = m.trust(aes.link[num] + stars)
+      tiles.push(m('div.header', {title: pvalue.toString()}, content))
+      for(var i = 0; i < donors.length; i++){
+        console.log(code)
+        var mutation = aes.mutation[code][i]
+        var in_list = in_list_donors[i]
+        tiles.push(m('div.tile', {"attr-mutation": mutation, "attr-in_list": in_list}))
+      }
+      return tiles
+    }
+
+    var graph_model = {}
+    graph_model.entities = {}
+    graph_model.entities["Gene"] = {}
+    graph_model.entities["Gene"].codes = genes
+    graph_model.entities["Gene"].aes = {}
+    graph_model.entities["Gene"].aes.mutation = incidence
+    graph_model.entities["Gene"].aes.pvalues = gene_pvalues
+    graph_model.entities["Gene"].aes.link = link
+
+    graph_model.rules = []
+
+    rbbt.plots.graph.view_mithril(graph_model, $('#tile_plot'), container_obj, produce_obj)

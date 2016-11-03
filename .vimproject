@@ -24,6 +24,14 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
   views=views{
    main.haml
    studies.haml
+   main=main{
+    pie.haml
+    plot.haml
+    plot2.haml
+    plot3.haml
+    study_column.haml
+    study_statistics.haml
+   }
    tools=tools{
     protein_tool=protein_tool{
      PCAWG_tab.haml
