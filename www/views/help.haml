@@ -1,0 +1,139 @@
+:sass
+  code
+    display: inline-block
+    background-color: #eee
+    padding: 0 3px
+:markdown
+  The PCAWG Scout
+  ====
+
+  ##Overview
+
+  This application is designed for the integration of data and functionalities.
+  Its design is based on the idea of the `Entity`: anything that can be
+  unambiguously identified, and be subject of investigation. Examples of
+  entities are: genes, proteins, SNPs, samples, pathways, etc.
+
+  Each entity has a report, which depends on the type of entity it is. All
+  reports are computed on the fly and cached. In addition to the main reports,
+  entities have `actions`, which are sub-reports that implement particular
+  analysis. For instance, for gene entities one of the actions is to display a
+  summary of the relevance of that gene across the collection of studies that
+  you have access to. In addition to entities, there are reports for lists of
+  entities and for entity maps, which are tables that relate entities to
+  values, such as genes to their average mutation frequency.
+
+  ##Important definitions
+
+  Its common to think of coding variants as synonymous or non-synonymous. We
+  find that this distinction is slightly inappropriate; a variant might be
+  synonymous and still have a consequence in the protein isoform, for instance
+  variants affecting exon junctions and that might interfere with splicing.
+  Isntead of this nomenclature we prefer to talk about `relevant` and `not
+  relevant` variants. Our current definition of `relevant` are variants that
+  can potentially alter the function of at least one of the isoforms of a gene;
+  this currently includes non-synonymous variants and variants affecting
+  splicing sites (-2 to 8 bases of the donor end and -8 to 3 bases of the
+  acceptor end).
+
+  ##User interface
+
+  The user interface offers a general structure for all reports that allows to
+  enact workflows, explore the results and connect functionalities with one
+  another. This web site is 'responsive', meaning that it adapts to the size of
+  the device you are using: computer, tablet, or phone. On small devices many
+  of the layout elements shift around or get hidden behind toggle buttons to
+  accommodate themselves better to the screen size. The examples below are
+  taken from a computer screen. The site layout and style are under revision so
+  the images might not look different, but the functionalitity is the same.
+
+=partial_render('help/UI')
+
+
+
+:markdown
+  ### How to install your own instance
+  
+
+  Please refer to the [Getting started with
+  Rbbt](http://mikisvaz.github.io/rbbt/tutorial/getting_started/) for
+  instructions on installing Rbbt on our system.
+
+  On a working installation you will need to place 
+  some data files you need access to in any of the directories
+  `/usr/local/share/rbbt/data/projects/PCAWG/.source`,
+  `/usr/share/rbbt/data/projects/PCAWG/.source`,
+  `~/.rbbt/share/data/projects/PCAWG/.source` or
+  somewhere else if you configure the path in `~/.rbbt/etc/search_paths`
+
+  These files are:
+
+  * joint_fpkm_uq.tsv.gz
+  * October_2016_whitelist_2583.snv_mnv_indel.maf.gz
+  * pcawg_consensus_1.5.160912.somatic.sv.tar.gz
+
+  The SNV and MNV file is considered sensitive; if you don't have access to it
+  you may still run the instance by placing the following text in a file file under
+  `~/.rbbt/etc/remote_workflow_tasks`
+
+
+  <pre>
+  ---
+  Sample:
+    http://pcawgscout.bioinfo.cnio.es/Sample:
+      - mi
+      - gene_mutation_status
+      - missing_genes
+      - compound_mutation_genes
+      - homozygous_genes
+      - num_genomic_mutations
+      - pandrugs
+      - mutation_signature
+  Study:
+    http://pcawgscput.bioinfo.cnio.es/Study:
+      - binomial_significance
+      - mut_sig 
+  </pre>
+
+  You can now install and bootstrap the PCAWG workflow, which means preparing
+  the basic results for all donors and cohorts
+
+  ```
+  env RBBT_WORKFLOW_AUTOINSTALL=true rbbt workflow cmd PCAWG bootstrap
+  ```
+
+  Or you can start this same web interface
+
+  ```
+  rbbt app install PCAWGScout && env RBBT_WORKFLOW_AUTOINSTALL=true rbbt app start PCAWGScout -e production --log 2 -p 2887
+  ```
+
+  Note that bootstrapping the infrastructure can be as lengthy and
+  bootstrapping the PCAWG workflow itself. In particular the DbNSFP workflow
+  used for damage predictions requires building a 200GB database, so we
+  recommend to use it remotely, at least at first
+
+  ```
+  rbbt workflow remote DbNSFP http://rbbt.bioinfo.cnio.es/DbNSFP
+  ```
+
+  You may also circumvent plenty of work by configuring one of CNIO servers
+  as a remote file server, which is then queried for files before trying to
+  generate them locally
+
+  ```
+  rbbt file_server add Organism http://rbbt.bioinfo.cnio.es
+  ```
+
+  ```
+  rbbt file_server add InterPro http://rbbt.bioinfo.cnio.es
+  ```
+
+  ```
+  rbbt file_server add Genomes1000 http://rbbt.bioinfo.cnio.es
+  ```
+
+  ```
+  rbbt file_server add DbSNP http://rbbt.bioinfo.cnio.es
+  ```
+
