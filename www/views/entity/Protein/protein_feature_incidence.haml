@@ -25,8 +25,9 @@
 
   - mutation_isoform_info = mutation_isoform_info.add_fields annotator.fields do |k,v|
     - new = [[]] * annotator.fields.length
-    - samples = v["Sample"].length
-    - v["Change"].each do |c|
+
+    - samples = v[0].length
+    - v[1].each do |c|
       - residue = c.match(/(\d+)/)[1].to_i
       - values = annotator.annotate(entity, residue, organism)
       - next if values.nil?
