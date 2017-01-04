@@ -12,7 +12,7 @@
 
   - log :finding_genes, "Finding genes affected in donor list"
   - donor_genes = {}
-  - donors.each do |donor|
+  - TSV.traverse donors, :bar => @step.progress_bar("Finding genes", :max => donors.length) do |donor|
     - if database.to_s == 'none'
       - donor_genes[donor] = Gene.setup(donor.get_genes(:affected), "Ensembl Gene ID", PCAWG.organism).name
     - else
@@ -39,14 +39,14 @@
   - gene_pvalues = {}
   - selected_class = all_donors.collect{|d| list.include?(d) ? 1 : 0 }
   - log :classify, "Classifying donor by gene status and calculating p-values"
-  - donor_genes.values.flatten.uniq.each do |gene|
+  - TSV.traverse donor_genes.values.flatten.uniq, :bar => @step.progress_bar("Classify", :max => donor_genes.values.flatten.uniq.length) do |gene|
     - gene_class = all_donors.collect{|d| (donor_genes[d] && donor_genes[d].include?(gene)) ? 1 : 0 }
-    - next if gene_class.select{|v| v == 1}.length < 3
+    - next if gene_class.select{|v| v == 1}.length < 6
     - pvalue = Fisher.test_classification(selected_class, gene_class)
     - next if pvalue > 0.1
     - gene_pvalues[gene] = pvalue
 
-  - genes = Misc.counts(donor_genes.values.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
+  - genes = Misc.counts(donor_genes.values.flatten & gene_pvalues.keys).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
   - list_genes = Misc.counts(donor_genes.values_at(*list).compact.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
   - genes = list_genes + (genes - list_genes)
   - donor_genes.values.first.annotate(genes) if donor_genes.values.first.respond_to?(:annotate)
@@ -94,9 +94,9 @@
         display: inline-block
         vertical-align: bottom
         &[attr-mutation=true]
-          background-color: red
+          background-color: blue
           &[attr-in_list=false]
-            background-color: blue
+            background-color: red
 
   #tile_plot
 
