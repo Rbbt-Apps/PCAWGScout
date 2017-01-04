@@ -2,21 +2,49 @@
 - study = list.study
 
 - action_card = ActionCard.new do
+  - input :use_CNV, :boolean, "Include CNV in the analysis", false
   - input :database, :select, "Database of annotations to use in grouping genes", :none, :select_options => [:none] + Enrichment::DATABASES 
 
 = action_card_render action_card do
   - database = :none unless defined? database and database
+  - use_CNV = false unless defined? use_CNV 
   - all_donors = Study.setup(list.cohort).samples
 
   - donors = all_donors
 
   - log :finding_genes, "Finding genes affected in donor list"
+
+  - donor_affected_genes = {}
+  - donors.each do |donor|
+    - genes = donor.get_genes(:affected)
+    - if database.to_s == 'none'
+      - donor_affected_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism).name
+    - else
+      - donor_affected_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism)
+
+  - donor_lost_genes = {}
+  - donor_gained_genes = {}
+  - if use_CNV
+    - donors.each do |donor|
+      - genes = donor.get_genes(:completly_lost)
+      - if database.to_s == 'none'
+        - donor_lost_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism).name
+      - else
+        - donor_lost_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism)
+
+
+    - donors.each do |donor|
+      - genes = donor.get_genes(:big_gain)
+      - if database.to_s == 'none'
+        - donor_gained_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism).name
+      - else
+        - donor_gained_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism)
+
   - donor_genes = {}
   - donors.each do |donor|
-    - if database.to_s == 'none'
-      - donor_genes[donor] = Gene.setup(donor.get_genes(:affected), "Ensembl Gene ID", PCAWG.organism).name
-    - else
-      - donor_genes[donor] = Gene.setup(donor.get_genes(:affected), "Ensembl Gene ID", PCAWG.organism)
+    - lists = [donor_affected_genes[donor], donor_lost_genes[donor], donor_gained_genes[donor]].compact
+    - genes = lists.first.annotate lists.flatten.uniq
+    - donor_genes[donor] = genes
 
   - if database.to_s != "none"
     - log :finding_annotations, "Finding database annotations for genes in donor list"
@@ -39,16 +67,19 @@
   - gene_pvalues = {}
   - selected_class = all_donors.collect{|d| list.include?(d) ? 1 : 0 }
   - log :classify, "Classifying donor by gene status and calculating p-values"
-  - donor_genes.values.flatten.uniq.each do |gene|
+  -# genes_considered = Misc.counts(donor_genes.values.flatten).select{|g,count| (count > 2) and (count > list.length.to_f / 3) or (count > donors.length.to_f / 20) }.collect{|gene,c| gene }
+  - genes_considered = Misc.counts(donors.collect{|donor| donor_affected_genes[donor]}.flatten).select{|g,count| (count > 2) and (count > list.length.to_f / 3) or (count > donors.length.to_f / 20) }.collect{|gene,c| gene }
+  - TSV.traverse genes_considered, :type => :array, :bar => @step.progress_bar("Classifying donor by gene status and calculating p-values") do |gene|
     - gene_class = all_donors.collect{|d| (donor_genes[d] && donor_genes[d].include?(gene)) ? 1 : 0 }
-    - next if gene_class.select{|v| v == 1}.length < 3
     - pvalue = Fisher.test_classification(selected_class, gene_class)
     - next if pvalue > 0.1
     - gene_pvalues[gene] = pvalue
 
   - genes = Misc.counts(donor_genes.values.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
   - list_genes = Misc.counts(donor_genes.values_at(*list).compact.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
-  - genes = list_genes + (genes - list_genes)
+  - genes = list_genes + (genes - list_genes) 
+  - genes = genes & genes_considered
+  - genes = genes
   - donor_genes.values.first.annotate(genes) if donor_genes.values.first.respond_to?(:annotate)
 
   - donors = []
@@ -58,11 +89,29 @@
   - donors = donors.flatten.uniq
   - donors = (donors & list) + (donors - list)
 
-  - incidence = {}
-
+  - incidence_affected = {}
   - genes.each do |gene|
-    - incidence[gene] = donors.collect do |donor|
-      - donor_genes[donor].include? gene
+    - incidence_affected[gene] = donors.collect do |donor|
+      - if donor_affected_genes.include?(donor)
+        - donor_affected_genes[donor].include? gene
+      - else
+        - false
+
+  - incidence_lost = {}
+  - genes.each do |gene|
+    - incidence_lost[gene] = donors.collect do |donor|
+      - if donor_lost_genes.include?(donor)
+        - donor_lost_genes[donor].include? gene
+      - else
+        - false
+
+  - incidence_gained = {}
+  - genes.each do |gene|
+    - incidence_gained[gene] = donors.collect do |donor|
+      - if donor_gained_genes.include?(donor)
+        - donor_gained_genes[donor].include? gene
+      - else
+        - false 
 
   :sass
     $header_size: 8em
@@ -78,7 +127,6 @@
           vertical-align: bottom
       .row
         margin-bottom: 3px
-        border-bottom: 1px solid #AAA
         white-space: nowrap
         height: 2.5em
         .header
@@ -93,10 +141,15 @@
         height: 0.5em
         display: inline-block
         vertical-align: bottom
+        border: 1px solid #AAA
         &[attr-mutation=true]
           background-color: red
           &[attr-in_list=false]
             background-color: blue
+        &[attr-lost=true]
+          border: 1px solid green
+        &[attr-gained=true]
+          border: 1px solid yellow
 
   #tile_plot
 
@@ -107,7 +160,9 @@
     var gene_pvalues = #{gene_pvalues.to_json}
     var link = #{genes.respond_to?(:link) ? genes.link.to_json : genes.to_json}
     var in_list_donors = #{(["true"] * (donors & list).length + ["false"] * (donors - list).length).to_json}
-    var incidence = #{incidence.to_json}
+    var incidence_affected = #{incidence_affected.to_json}
+    var incidence_lost = #{incidence_lost.to_json}
+    var incidence_gained = #{incidence_gained.to_json}
 
     var container_obj = function(graph_model, by_type){ 
       var rows = mapArray(by_type["Gene"], function(l){ 
@@ -139,10 +194,11 @@
       var content = m.trust(aes.link[num] + stars)
       tiles.push(m('div.header', {title: pvalue.toString()}, content))
       for(var i = 0; i < donors.length; i++){
-        console.log(code)
         var mutation = aes.mutation[code][i]
+        var gained = aes.gained[code][i]
+        var lost = aes.lost[code][i]
         var in_list = in_list_donors[i]
-        tiles.push(m('div.tile', {"attr-mutation": mutation, "attr-in_list": in_list}))
+        tiles.push(m('div.tile', {"attr-mutation": mutation,"attr-lost": lost,"attr-gained": gained, "attr-in_list": in_list}))
       }
       return tiles
     }
@@ -152,7 +208,9 @@
     graph_model.entities["Gene"] = {}
     graph_model.entities["Gene"].codes = genes
     graph_model.entities["Gene"].aes = {}
-    graph_model.entities["Gene"].aes.mutation = incidence
+    graph_model.entities["Gene"].aes.mutation = incidence_affected
+    graph_model.entities["Gene"].aes.lost = incidence_lost
+    graph_model.entities["Gene"].aes.gained = incidence_gained
     graph_model.entities["Gene"].aes.pvalues = gene_pvalues
     graph_model.entities["Gene"].aes.link = link
 
