@@ -12,10 +12,9 @@
 
   - donors = all_donors
 
-  - log :finding_genes, "Finding genes affected in donor list"
-
+  - log :finding_genes, "Finding genes for each donor"
   - donor_affected_genes = {}
-  - donors.each do |donor|
+  - traverse donors, "Finding affected genes" do |donor|
     - genes = donor.get_genes(:affected)
     - if database.to_s == 'none'
       - donor_affected_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism).name
@@ -25,16 +24,18 @@
   - donor_lost_genes = {}
   - donor_gained_genes = {}
   - if use_CNV
-    - donors.each do |donor|
-      - genes = donor.get_genes(:completly_lost)
+    - lost_gene_status = :completly_lost
+    - gained_gene_status = :big_gain
+    - traverse donors, "Finding #{Misc.humanize lost_gene_status, :format => :nocaps} genes" do |donor|
+      - genes = donor.get_genes(lost_gene_status)
       - if database.to_s == 'none'
         - donor_lost_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism).name
       - else
         - donor_lost_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism)
 
 
-    - donors.each do |donor|
-      - genes = donor.get_genes(:big_gain)
+    - traverse donors, "Finding #{Misc.humanize gained_gene_status, :format => :nocaps} genes" do |donor|
+      - genes = donor.get_genes(gained_gene_status)
       - if database.to_s == 'none'
         - donor_gained_genes[donor] = Gene.setup(genes, "Ensembl Gene ID", PCAWG.organism).name
       - else
@@ -65,17 +66,20 @@
     - donor_genes = donor_pathways
 
   - gene_pvalues = {}
-  - selected_class = all_donors.collect{|d| list.include?(d) ? 1 : 0 }
+  - selected_class_index = all_donors.collect{|d| list.include?(d) ? 1 : 0 }
+
   - log :classify, "Classifying donor by gene status and calculating p-values"
-  -# genes_considered = Misc.counts(donor_genes.values.flatten).select{|g,count| (count > 2) and (count > list.length.to_f / 3) or (count > donors.length.to_f / 20) }.collect{|gene,c| gene }
-  - genes_considered = Misc.counts(donors.collect{|donor| donor_affected_genes[donor]}.flatten).select{|g,count| (count > 2) and (count > list.length.to_f / 3) or (count > donors.length.to_f / 20) }.collect{|gene,c| gene }
-  - TSV.traverse genes_considered, :type => :array, :bar => @step.progress_bar("Classifying donor by gene status and calculating p-values") do |gene|
+
+  - gene_incidence = database.to_s == "none" ? Misc.counts(donors.collect{|donor| donor_affected_genes[donor]}.flatten) : Misc.counts(donors.collect{|donor| donor_genes[donor]}.flatten)
+  - genes_considered = gene_incidence.select{|g,count| (count > 2) and ((count > list.length.to_f / 100) or (count > donors.length.to_f / 20)) }.collect{|gene,c| gene }
+  -# TSV.traverse genes_considered, :type => :array, :bar => @step.progress_bar("Classifying donor by gene status and calculating p-values") do |gene|
+  - traverse genes_considered, "Classifying donor by gene status and calculating p-values" do |gene|
     - gene_class = all_donors.collect{|d| (donor_genes[d] && donor_genes[d].include?(gene)) ? 1 : 0 }
-    - pvalue = Fisher.test_classification(selected_class, gene_class)
+    - pvalue = Fisher.test_classification(selected_class_index, gene_class)
     - next if pvalue > 0.1
     - gene_pvalues[gene] = pvalue
 
-  - genes = Misc.counts(donor_genes.values.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
+  - genes = Misc.counts(donor_genes.values.flatten & gene_pvalues.keys).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
   - list_genes = Misc.counts(donor_genes.values_at(*list).compact.flatten).select{|g,c| c > 3}.sort_by{|g,c| -c.to_f/(gene_pvalues[g] || 1)}.collect{|g,c| g}
   - genes = list_genes + (genes - list_genes) 
   - genes = genes & genes_considered
@@ -90,15 +94,18 @@
   - donors = (donors & list) + (donors - list)
 
   - incidence_affected = {}
-  - genes.each do |gene|
+  - log :incidence, "Finding gene incidence"
+  - traverse genes, "Incidence for affected genes" do |gene|
     - incidence_affected[gene] = donors.collect do |donor|
-      - if donor_affected_genes.include?(donor)
+      - if donor_affected_genes.include?(donor) 
         - donor_affected_genes[donor].include? gene
+      - elsif database != "none" 
+        - donor_genes[donor].include? gene
       - else
         - false
 
   - incidence_lost = {}
-  - genes.each do |gene|
+  - traverse genes, "Incidence for lost genes" do |gene|
     - incidence_lost[gene] = donors.collect do |donor|
       - if donor_lost_genes.include?(donor)
         - donor_lost_genes[donor].include? gene
@@ -106,7 +113,7 @@
         - false
 
   - incidence_gained = {}
-  - genes.each do |gene|
+  - traverse genes, "Incidence for gained genes" do |gene|
     - incidence_gained[gene] = donors.collect do |donor|
       - if donor_gained_genes.include?(donor)
         - donor_gained_genes[donor].include? gene
@@ -143,13 +150,14 @@
         vertical-align: bottom
         border: 1px solid #AAA
         &[attr-mutation=true]
-          background-color: red
+          background-color: blue
           &[attr-in_list=false]
             background-color: blue
         &[attr-lost=true]
           border: 1px solid green
         &[attr-gained=true]
           border: 1px solid yellow
+            background-color: red
 
   #tile_plot
 
@@ -173,9 +181,9 @@
       for (var i=0; i < in_list_donors.length; i++){
         var in_list = in_list_donors[i]
         if (in_list == "true"){
-          donors.push(m('.donor', {style: 'background-color: red'}))
-        }else{
           donors.push(m('.donor', {style: 'background-color: blue'}))
+        }else{
+          donors.push(m('.donor', {style: 'background-color: red'}))
         }
       }
       var donor_headers = m('div.row.donors', donors) 

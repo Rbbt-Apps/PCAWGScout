@@ -88,6 +88,19 @@
           %td Recurrent genes
           %td= entity.get_genes(:recurrent).list_link :length, "Recurrent genes in #{ entity }"
 
+        %tr
+          %td Damage biased drivers
+          %td
+            = fragment do
+              = entity.get_genes(:damage_biased).list_link :length, "Damage biased genes in #{ entity }"
+
+        %tr
+          %td Significantly mutated drivers
+          %td
+            = fragment do
+              = entity.get_genes(:significant).list_link :length, "Significant genes in #{ entity }"
+
+
   - entity_card.add_section "Gene status by sample" do
     = fragment do
       = table :row_ids => :consume do
