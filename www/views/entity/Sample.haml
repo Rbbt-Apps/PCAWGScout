@@ -74,7 +74,6 @@
         - sample_values = values.values_at(*sample.expression_samples).flatten.compact.collect{|f| f.to_f}
         - next if sample_values.compact.empty?
         - value = Misc.mean(sample_values)
-        - iii [sample_values, value, values]
         - color = Colorize.rank_gradient(values.flatten.compact.collect{|v| v.to_f}, value, "#0F0", "#F00")
         - boundary_gene_color[gene] = color
 

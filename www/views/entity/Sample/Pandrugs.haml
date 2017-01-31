@@ -21,9 +21,12 @@
 
 = action_card_render action_card do
 
+  - PCAWG.pandrugs.produce
+
   - fields = []
   - fields << "Drug"
-  - fields << "Affected gene"
+  - fields << "Affected protein"
+  - fields << "Mutation"
   - fields << "D score"
   - fields << "G score"
   - fields << "Sensitivity / Resistence"
@@ -32,8 +35,11 @@
   - fields << "Source"
   - fields << "Relation"
   - fields << "Target gene"
+  - fields << "Alteration"
   - fields << "Target or Marker"
 
+  - ensp2gn = Organism.identifiers(PCAWG.organism).index :target => "Associated Gene Name", :persist => true
+  - mis = donor.mi(:principal => true)
   - tsv = TSV.setup({}, :key_field => "ID", :fields => fields, :type => :double, :namespace => PCAWG.organism)
   - TSV.traverse PCAWG.pandrugs[donor], :header_hash => "", :into => tsv, :type => :list do |gene,values|
     - max_vscore, branch, entrez_id, path_desc, path_id, gene_symbol, source, show_drug_name, status, pathology, cancer, extra, extra2, pathways, target_marker, resistance, alteration, ind_pathway, relation, ind_gene, score = values
@@ -68,8 +74,9 @@
     - affected_gene = gene_symbol
     - target_gene = gene
 
+    - mi = mis.select{|mi| ensp2gn[mi.split(":").first] == affected_gene}
     - id = Misc.digest([drug, affected_gene, target_gene].inspect)
-    - [id, [drug, affected_gene, score, max_vscore, resistance, status_str, extra2, source, relation, target_gene, target_marker]]
+    - [id, [drug, mi, score, max_vscore, resistance, status_str, extra2, source, relation, target_gene, alteration, target_marker]]
 
   - clean_tsv = tsv.annotate({})
   - tsv.each do |id,values|
@@ -81,7 +88,7 @@
     - next unless dscore.select{|s| s.to_f.abs > 0.5}.any?
     - next unless gscore.select{|s| s.to_f.abs > 0.5}.any?
     - filtered_tsv[id] = values.collect{|v| v.uniq}
-  - header "Affected gene", "Gene", :format => "Associated Gene Name"
+  - header "Affected protein", "Mutated Isoform"
   - header "Target gene", "Gene", :format => "Associated Gene Name"
   = table :row_ids => :consume do 
     - filtered_tsv
