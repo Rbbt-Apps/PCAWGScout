@@ -45,6 +45,9 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
    }
    entity=entity{
     Sample.haml
+    Sample=Sample{
+     Pandrugs.haml
+    }
     StructuralVariant.haml
     Study.haml
     Study.md

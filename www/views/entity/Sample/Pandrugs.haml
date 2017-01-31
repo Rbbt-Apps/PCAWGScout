@@ -1,0 +1,91 @@
+
+- donor = entity
+
+- action_card = ActionCard.new 
+- action_card.description do
+
+  :markdown
+
+    This results are derived from the [Pandrugs
+    database](http://pandrugs.bioinfo.cnio.es/).  Please consult their website
+    for more documentation.  They have been precomputed using the original VCF
+    files provided by PCAWG. 
+
+    The associations presented here can be for drugs approved by the FDA, in clinical trials,
+    and experimental. For direct drug-targer relationships or for markers of sensitivity
+    and resistance, and for direct gene matches or for matches in up or down-stream.
+    
+    The table shows only recomendations with gene and drug scores above 0.5 in
+    absolute value. Use the link below to retrieve the complete result.
+
+
+= action_card_render action_card do
+
+  - fields = []
+  - fields << "Drug"
+  - fields << "Affected gene"
+  - fields << "D score"
+  - fields << "G score"
+  - fields << "Sensitivity / Resistence"
+  - fields << "Drug status"
+  - fields << "Type of therapy"
+  - fields << "Source"
+  - fields << "Relation"
+  - fields << "Target gene"
+  - fields << "Target or Marker"
+
+  - tsv = TSV.setup({}, :key_field => "ID", :fields => fields, :type => :double, :namespace => PCAWG.organism)
+  - TSV.traverse PCAWG.pandrugs[donor], :header_hash => "", :into => tsv, :type => :list do |gene,values|
+    - max_vscore, branch, entrez_id, path_desc, path_id, gene_symbol, source, show_drug_name, status, pathology, cancer, extra, extra2, pathways, target_marker, resistance, alteration, ind_pathway, relation, ind_gene, score = values
+
+    - next if show_drug_name.nil?
+    - if status == "Approved"
+      - status_str =  if pathology.include? "Oncology"
+        - ["Approved for Oncology", [extra, extra2].reject{|e| e.empty? or e.include? "THERAPY"} * "; "].reject{|e| e.empty?} * ": "
+      - else
+        - if cancer.include? 'cancer'
+          - ["Approved for different pathology (#{pathology}) but in clinical trial for cancer", [extra, extra2].reject{|e| e.empty?}.compact * "; "].reject{|e| e.empty?} * ": "
+        - else
+          - "Approved for different pathology (#{pathology})"
+
+    - if status == "Clinical trials"
+      - status_str =  if pathology.include? "Oncology" or cancer.include? "cancer"
+        - ["In clinical trial for cancer", [extra].reject{|e| e.empty?}.compact * "; "].reject{|e| e.empty?} * ": "
+      - else
+        - ["In clinical trial for a different pathology", [pathology].reject{|e| e.empty?} * "; "].reject{|e| e.empty?} * ": "
+
+    - if status == "Experimental"
+      - status_str =  if pathology.empty?
+        - "Experimental"
+      - else
+        - "Experimental: #{ pathology }"
+          
+    - if status_str.nil? or status_str.empty?
+      - status_str= "Missing: #{[status, pathology, cancer, extra, extra2] * ", "}"
+          
+    - drug = show_drug_name
+
+    - affected_gene = gene_symbol
+    - target_gene = gene
+
+    - id = Misc.digest([drug, affected_gene, target_gene].inspect)
+    - [id, [drug, affected_gene, score, max_vscore, resistance, status_str, extra2, source, relation, target_gene, target_marker]]
+
+  - clean_tsv = tsv.annotate({})
+  - tsv.each do |id,values|
+    - clean_tsv[id] = values.collect{|v| v.uniq}
+
+  - filtered_tsv = clean_tsv.annotate({})
+  - clean_tsv.each do |id,values|
+    - drug, gene, dscore, gscore,*rest = values
+    - next unless dscore.select{|s| s.to_f.abs > 0.5}.any?
+    - next unless gscore.select{|s| s.to_f.abs > 0.5}.any?
+    - filtered_tsv[id] = values.collect{|v| v.uniq}
+  - header "Affected gene", "Gene", :format => "Associated Gene Name"
+  - header "Target gene", "Gene", :format => "Associated Gene Name"
+  = table :row_ids => :consume do 
+    - filtered_tsv
+
+  = resource "Complete #{donor} Pandrugs result.tsv", nil, :link do |filename|
+    - Open.write(filename, clean_tsv.to_s)
+
