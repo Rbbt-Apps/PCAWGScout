@@ -1,4 +1,4 @@
-PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
+PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
  etc=etc filter="*"{
   entities
   remote_tasks
@@ -18,43 +18,53 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
     structural_variant.rb
    }
 
-   }
+  }
  }
  www=www{
   views=views{
-   main.haml
-   studies.haml
    help.haml
+   main.haml
    main=main{
+    cohort_selection.haml
     pie.haml
     plot.haml
     plot2.haml
     plot3.haml
+    study_card.haml
     study_column.haml
     study_statistics.haml
+    cohort_selection.md
    }
    tools=tools{
     protein_tool=protein_tool{
      PCAWG_tab.haml
+     PCAWG_tab.md
     }
    }
    entity_partials=entity_partials{
-    action_card.haml
-    action_controller.haml
-    entity_card.haml
-    entity_list.haml
-    entity_list_card.haml
-    entity_map_card.haml
-    list_container.haml
    }
    entity=entity{
     Sample.haml
+    StructuralVariant.haml
     Study.haml
+    Study.md
     Study=Study{
+     SV_summary.haml
      gene_list_report.haml
      gene_report.haml
      graph.haml
-     SV_summary.haml
+     MutSig.check
+     Pandrugs.check
+     binomial_significance.check
+     gene_damage_bias.check
+     count_tables.check
+     graph.check
+     mutation_extended_summary.check
+     mutation_list_report.check
+     mutation_report.check
+     pandrugs.check
+     SV_summary.md
+     sample_enrichment.md
     }
     Protein=Protein{
      needle-plot.haml
@@ -64,12 +74,15 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru" {
    entity_list=entity_list{
     Gene=Gene{
      mutation_plot.haml
+     cards.check
+     network.check
+     tiles.check
     }
     Sample=Sample{
      characteristic_alterations.haml
-     tiles.haml
-     clinical_variates.haml
      differential_expression.haml
+     survival.haml
+     extended_sample_info.check
     }
   }
  }

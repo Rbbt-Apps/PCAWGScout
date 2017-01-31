@@ -1,0 +1,40 @@
+- require 'rbbt/rest/common/tabs'
+:sass
+  .grid
+    .column 
+      a
+        background-color: white
+        display: inline-block
+        padding: 5px
+        width: 70%
+        &:last-child
+          width: 25%
+
+= tabs do |tab|
+  - tab.active(true)
+  - tab.add "All abbreviations" do
+    - abbreviations = PCAWG.all_abbreviations
+    .ui.four.column.stackable.grid.basic.segment
+      - abbreviations.sort.each do |abbr|
+        - study = abbr
+        = partial_render('main/study_card', :study => study)
+
+  - tab.add "Meta cohorts" do
+    - meta = PCAWG.all_meta
+    .ui.four.column.stackable.grid.basic.segment
+      - meta.sort.each do |meta|
+        - study = "meta=" << meta
+        = partial_render('main/study_card', :study => study)
+
+  - donor_histology = PCAWG.donor_histology.tsv
+  - donor_histology.fields.each do |key|
+    - next if key =~ /abbrevi/i
+    - next if key =~ /code/i
+    - next unless key =~ /histo/i
+    - tab.add Misc.humanize(key) do
+      .ui.four.column.stackable.grid.basic.segment
+        - values = donor_histology.column(key).values.flatten.uniq
+        - values.sort.each do |value|
+          - study = key + "=" + value
+          = partial_render('main/study_card', :study => study)
+

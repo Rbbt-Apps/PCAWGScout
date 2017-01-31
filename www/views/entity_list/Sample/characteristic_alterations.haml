@@ -72,7 +72,7 @@
 
   - gene_incidence = database.to_s == "none" ? Misc.counts(donors.collect{|donor| donor_affected_genes[donor]}.flatten) : Misc.counts(donors.collect{|donor| donor_genes[donor]}.flatten)
   - genes_considered = gene_incidence.select{|g,count| (count > 2) and ((count > list.length.to_f / 100) or (count > donors.length.to_f / 20)) }.collect{|gene,c| gene }
-  -# TSV.traverse genes_considered, :type => :array, :bar => @step.progress_bar("Classifying donor by gene status and calculating p-values") do |gene|
+  - genes_considered = genes_considered - ["TTN"]
   - traverse genes_considered, "Classifying donor by gene status and calculating p-values" do |gene|
     - gene_class = all_donors.collect{|d| (donor_genes[d] && donor_genes[d].include?(gene)) ? 1 : 0 }
     - pvalue = Fisher.test_classification(selected_class_index, gene_class)
@@ -91,7 +91,9 @@
     - donors << donor_genes.select{|s,gs| gs.include? gene}.collect{|s,g| s}
 
   - donors = donors.flatten.uniq
-  - donors = (donors & list) + (donors - list)
+  -# donors = (donors & list) + (donors - list)
+  - rest = all_donors - list
+  - donors = (donors & list) + (list - donors) + (donors & rest) + (rest - donors)
 
   - incidence_affected = {}
   - log :incidence, "Finding gene incidence"
@@ -121,10 +123,13 @@
         - false 
 
   :sass
-    $header_size: 8em
-    $tile_margin: 1px
-    $tile_width: calc(#{100.0/donors.length}% - (1px + 8em/#{donors.length}))
+    $header_size: 6em
+    $tile_margin: 1.5px
+    $tile_width: calc(#{100.0/donors.length}% - (1.5px + 6em/#{donors.length}))
+    $border_size: $tile_margin
     #tile_plot
+      padding: 1em
+      background: white
       .donors
         .donor
           width: $tile_width
@@ -144,19 +149,20 @@
       .tile
         width: $tile_width
         margin-left: $tile_margin
-        margin-bottom: -0.5em
+        //margin-bottom: -0.5em
+        margin-bottom: 0.4em
         height: 0.5em
         display: inline-block
         vertical-align: bottom
-        border: 1px solid #AAA
+        background: #DDD
         &[attr-mutation=true]
-          background-color: blue
+          background-color: red
           &[attr-in_list=false]
-            background-color: blue
+            background-color: red
         &[attr-lost=true]
-          border: 1px solid green
+          border: $border_size solid green
         &[attr-gained=true]
-          border: 1px solid yellow
+          border: $border_size solid yellow
             background-color: red
 
   #tile_plot

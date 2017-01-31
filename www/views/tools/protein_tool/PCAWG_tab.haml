@@ -10,7 +10,6 @@
 
 - gene = protein.gene
 - incidence = Study.setup("PCAWG").mi_incidence(:job).produce.path.tsv :grep => protein
-- Log.tsv incidence
 - incidence.each do |mi,donors|
   - next unless mi =~ /ENSP/
   - p, change = mi.split(":")
@@ -29,7 +28,6 @@
   - change.scan(/\d+/)[0]
 
 - tsv = tsv.attach PCAWG.donor_histology.tsv
-- Log.tsv tsv
 
 - header "Residue", "NumericValue"
 = table :table_id => "PCAWG mutations for #{ protein.name || protein }", :span => true do
@@ -53,7 +51,7 @@
     if (undefined != filter){ url = add_parameter(url, '_filter',  escape(filter)) }
 
     var color = 'red'
-    var abbr_colors = #{PCAWG.abbr_colors.to_json}
+    var abbr_colors = #{PCAWG.color_palette.tsv.to_json}
 
     $.ajax({
       url: url,
@@ -90,7 +88,8 @@
 
         rbbt.jmol.color_positions(jmol_element, change_counts);
         for (abbr in change_positions_abbr){
-          var color = abbr_colors[abbr]
+          var abbr_key = abbr.toLowerCase().replace(/[^a-zA-Z0-9]/,'.')
+          var color = abbr_colors[abbr_key]
           console.log([abbr, color])
           rbbt.svg.mark_positions(svg_element, change_positions_abbr[abbr], color);
         }

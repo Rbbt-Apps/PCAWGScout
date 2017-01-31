@@ -10,27 +10,24 @@
 = action_card_render action_card do
   - study = entity
   - name = list
-
+  - genes = get_genes Entity::List.load_list("Gene", list, user)
 
   - if study.has_genotypes?
-    - genes = get_genes Entity::List.load_list("Gene", list, user)
 
     %h2 #{ name } in #{ study } (#{genes.length})
 
-    -#
-      - matches = study.knowledge_base.subset(:mutation_info, :target => genes, :source => :all)
-      - tsv = matches.tsv
-
-      %h3 Mutation overview (#{study.metagenotype.length})
-      %dl
-        %dt All mutations
-        %dd= matches.source_entity.length
-
-        %dt Relevant mutations
-        %dd= matches.select{|item| item.info["affected"].to_s == "true" }.source_entity.uniq.length
-
-        %dt Damaging mutations
-        %dd= matches.select{|item| item.info["broken"].to_s == "true" }.source_entity.uniq.length
+    .column
+      .ui.header
+        Overlaps with Integrated driver calls
+      .ui.content
+        %dl
+          - types = %w(CDS 3UTR  5UTR promCore)
+          - types.each do |type|
+            - overlap = genes & study.drivers(type)
+            - genes.annotate overlap
+            - next if overlap.empty?
+            %dt #{type} drivers
+            %dd= overlap.list_link :length, "#{ list } overlap with #{ type } consensus drivers for #{ entity }"
 
     - matches = study.knowledge_base.subset(:sample_genes, :target => genes, :source => :all)
     - tsv = matches.tsv

@@ -1,0 +1,12 @@
+
+- text = study.split("=").last
+- study = Study.setup(study.dup)
+- study_nh = Study.setup(study+'.NOHYPER')
+- url = '/entity/Study/' + study
+- color = PCAWG.concept_color(text)
+- color ||= 'lightgrey'
+- background_style = 'background-color:' + color
+- border_style = 'border: 2px solid ' + Color.new(color).darken(0.2).to_s
+.ui.one.wide.mobile.center.aligned.four.wide.column(style="#{background_style + "; " + border_style}")
+  = study.link text
+  = study_nh.link "NH"

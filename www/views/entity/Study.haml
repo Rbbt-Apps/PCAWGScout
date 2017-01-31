@@ -2,56 +2,99 @@
 
 - entity_card = EntityCard.new(study)
 - entity_card.name = study
-- entity_card.long_name = study.metadata[:condition]
-- entity_card.meta
+- entity_card.long_name = ""
+
 - entity_card.meta do
-  :plain
-    #{hash2dl study.metadata}
-  %dl
+  %h1 Meta
 
-    %dt Registered samples 
-    %dd= study.samples.list_link :length, "Samples in #{ study }"
-
-    - if study.respond_to?(:has_genotypes?) and study.has_genotypes?
-      - samples = study.genotyped_samples
-      %dt Genotyped samples
-      %dd= samples.list_link :length, "Genotyped samples in #{ study }"
-
-    - if study.respond_to?(:has_cnv?) and study.has_cnv?
-      - samples = study.samples.select{|s| s.has_cnv? }
-      %dt CNV samples
-      %dd= samples.list_link :length, "CNV samples in #{ study }"
-
-    - if study.respond_to?(:matrices) and study.matrices.any?
-      %dt Matrices
-      %dd
+- entity_card.add_section "Overview" do
+  .ui.stackable.three.column.grid
+    .column
+      .ui.header
+        Donors
+      
+      .ui.content
         %dl
-          - study.matrices.each do |matrix|
-            %dt #{matrix} samples
-            %dd
-              - if study.matrix(matrix).samples
-                = fragment do
-                  = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Samples in #{study} matrix #{matrix}"
-              - else
-                0
+          %dt Registered donors 
+          %dd= study.donors.list_link :length, "Donors in #{ study }"
 
-  %h3 Cohort tasks
+          - if study.respond_to?(:has_genotypes?) and study.has_genotypes?
+            - donors = study.genotyped_samples
+            %dt Genotyped donors
+            %dd= donors.list_link :length, "Genotyped donors in #{ study }"
 
-  - task_exports = Study.synchronous_exports + Study.asynchronous_exports
-  - task_exports = task_exports.collect{|t| t.to_s}
-  %ul
-    - task_exports.each do |task|
-      - base_url = File.join("/", "Study", task)
-      - defaults = Study.rec_input_defaults(task.to_sym) || {}
-      - task_url = base_url +  "?" << Misc.hash2GET_params(defaults.merge(:jobname => entity))
-      %li
-        %a(href=task_url)= task
-        - if defaults.any?
-          - task_url = base_url +  "?" << Misc.hash2GET_params(:jobname => entity)
-          %a(href=task_url) 
-            %i.ui.settings.icon
+          - if study.respond_to?(:has_cnv?) and study.has_cnv?
+            - donors = study.donors.select{|s| s.has_cnv? }
+            %dt CNV donors
+            %dd= donors.list_link :length, "CNV donors in #{ study }"
 
-- if entity.has_genotypes?
+          - if study.respond_to?(:has_sv?) and study.has_sv?
+            - donors = study.donors.select{|s| s.has_sv? }
+            %dt SV donors
+            %dd= donors.list_link :length, "SV donors in #{ study }"
+
+
+      - if study.respond_to?(:matrices) and study.matrices.any?
+        .ui.header
+          Matrices
+        
+        .ui.content
+          %dl
+            - study.matrices.each do |matrix|
+              %dt #{matrix} donors
+              %dd
+                - if study.matrix(matrix).samples
+                  = fragment do
+                    = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Donors in #{study} matrix #{matrix}"
+                - else
+                  0
+    .column
+      .ui.header
+        Mutation density
+      .ui.content
+        - mutation_histogram = TSV.setup({}, :key_field => 'label', :fields => ['value'], :type => :single, :cast => :to_i)
+        - study.donors.sort_by{|d|d.num_genomic_mutations}.each do |donor|
+          - mutation_histogram[donor] = donor.num_genomic_mutations
+        - mutation_counts = mutation_histogram.values.flatten
+        - bins = 10
+        - min = mutation_counts.min
+        - max = mutation_counts.max
+        - range = max-min
+        - bin_size = range / bins
+        - mutation_bin_donors = TSV.setup({}, :key_field => "label", :fields => ["value"], :type => :single, :cast => :to_i)
+        - mutation_histogram.through do |donor, counts|
+          - bin = (counts - min) / bin_size
+          - bin_name = [min + bin*bin_size, min + (bin+1)*bin_size].collect{|n| n < 1000 ? n.to_s : (n/1000).to_s + 'K'}
+          - bin_name = bin_name * ".."
+          - mutation_bin_donors[bin_name] ||= 0
+          - mutation_bin_donors[bin_name] += 1
+
+        = tool :nvd3, :plot => 'histogram', :values => mutation_bin_donors, :height => '15em', :width => '100%', :x_label => 'Num. Mutations', :y_label => 'Number of donors'
+
+    - if study.has_drivers? 
+      .column
+        .ui.header
+          Integrated driver calls
+        .ui.content
+          %dl
+            - types = %w(CDS 3UTR  5UTR enhancer promCore)
+            - types.each do |type|
+              %dt #{type} drivers
+              %dd= study.drivers(type).list_link :length, "#{ type } consensus drivers for #{ entity }"
+- if study.has_drivers? 
+  - entity_card.add_section "Driver network" do
+    - driver_by_type = TSV.setup({}, :fields => ["Ensembl Gene ID"], :key_field => "Driver type", :type => :flat)
+    - all_drivers = Set.new
+    - types = %w(CDS 3UTR  5UTR promCore)
+    - types.each do |type|
+      - driver_by_type[type] ||= []
+      - driver_by_type[type] += study.drivers(type)
+      - all_drivers += driver_by_type[type]
+
+    = graph do |kb|
+      - add_entities Gene.setup(all_drivers.to_a, "Ensembl Gene ID", PCAWG.organism)
+
+-# if entity.has_genotypes?
   - entity_card.add_section "Mutations and Genes" do
 
     %table.ui.collapsing.table
@@ -60,10 +103,6 @@
           %td All Mutations
           %td= study.num_genomic_mutations
 
-        %tr
-          %td All Overlapping Genes
-          %td= entity.get_genes.list_link :length, "All overlapping genes in #{ entity }"
-    
         %tr
           %td Affected genes
           %td= entity.get_genes(:affected).list_link :length, "Affected genes in #{ entity }"
@@ -76,36 +115,28 @@
           %td Broken genes 
           %td= entity.get_genes(:broken).list_link :length, "Broken genes in #{ entity }"
 
-        -#%tr
-          %td Missing genes
-          %td= entity.get_genes(:missing?).list_link :length, "Missing genes in #{ entity }"
-
-        -#%tr
-          %td Surely missing genes
-          %td= entity.get_genes(:missing).list_link :length, "Surely missing genes in #{ entity }"
-
         %tr
           %td Recurrent genes
           %td= entity.get_genes(:recurrent).list_link :length, "Recurrent genes in #{ entity }"
 
-        %tr
-          %td Damage biased drivers
-          %td
-            = fragment do
-              = entity.get_genes(:damage_biased).list_link :length, "Damage biased genes in #{ entity }"
 
-        %tr
-          %td Significantly mutated drivers
-          %td
-            = fragment do
-              = entity.get_genes(:significant).list_link :length, "Significant genes in #{ entity }"
-
+  - if study.has_drivers? 
+    - entity_card.add_section "Drivers" do
+      %table.ui.collapsing.table
+        %tbody
+          - types = %w(CDS 3UTR  5UTR enhancer promCore)
+          - types.each do |type|
+            %tr
+              %td #{type} drivers
+              %td= study.drivers(type).list_link :length, "#{ type } consensus drivers for #{ entity }"
 
   - entity_card.add_section "Gene status by sample" do
     = fragment do
       = table :row_ids => :consume do
         - matches = study.knowledge_base.subset(:sample_genes, :all)
-        - matches.tsv
+        - tsv = matches.tsv
+        - tsv = tsv.slice(tsv.fields - %w(overlapping))
+        - tsv
 
 
 - entity_card.action_controller = default_action_controller entity

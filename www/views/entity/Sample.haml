@@ -71,8 +71,8 @@
         - values = mat[gene]
         - next if values.nil?
         - next if values.compact.flatten.uniq.length < 3
-        - value = values.values_at(*sample.expression_samples).flatten.first.to_f
-        - color = Colorize.rank_gradient(values.flatten.compact.collect{|v| v.to_f}, value, "#0F0", "#F00")
+        - value = Misc.log2(Misc.mean(values.values_at(*sample.expression_samples).flatten.compact.collect{|f| f.to_f}))
+        - color = Colorize.rank_gradient(values.flatten.compact.collect{|v| Misc.log2(v.to_f)}, value, "#0F0", "#F00")
         - boundary_gene_color[gene] = color
 
       :deferjs

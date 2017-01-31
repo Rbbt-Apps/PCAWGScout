@@ -24,6 +24,15 @@ class PCAWGScout
             PCAWG.all_abbreviations.each do |elem|
               yield(elem)
             end
+
+            PCAWG.all_meta.each do |elem|
+              yield("meta=" + elem)
+            end
+
+            #PCAWG.donor_other_cohorts.glob('*').each do |file|
+            #  elem = File.basename(file)
+            #  yield("other=" + elem)
+            #end
           end
 
           def collect(&block)
@@ -75,7 +84,7 @@ module Sinatra
 end
 
 sample_tasks = Sample.tasks.keys.collect{|t| t.to_s}
-remote_sample_tasks =  Sample.remote_tasks.keys.collect{|t| t.to_s}
+remote_sample_tasks =  (Sample.remote_tasks || {}).keys.collect{|t| t.to_s}
 sample_tasks.delete_if do |task| 
   good = true
   deps = [task]
@@ -100,8 +109,8 @@ sample_tasks.delete_if do |task|
   ! good
 end
 
-study_tasks = Study.tasks.keys.collect{|t| t.to_s} - Study.remote_tasks.keys.collect{|t| t.to_s}
-remote_study_tasks =  Study.remote_tasks.keys.collect{|t| t.to_s}
+study_tasks = Study.tasks.keys.collect{|t| t.to_s} - (Study.remote_tasks || {}).keys.collect{|t| t.to_s}
+remote_study_tasks =  (Study.remote_tasks || {}).keys.collect{|t| t.to_s}
 
 study_tasks.delete_if do |otask| 
   good = true
