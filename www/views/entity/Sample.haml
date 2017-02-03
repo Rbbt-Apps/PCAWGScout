@@ -1,7 +1,7 @@
 - require 'rbbt/tsv/excel'
 - require 'rbbt/util/colorize'
 
-- sample = entity
+- sample = donor = entity
 - entity_card = EntityCard.new(sample)
 - entity_card.name = entity
 - study = PCAWG.all_abbreviations.select do |abbr|
@@ -35,21 +35,23 @@
 
 
 - entity_card.description do
+  - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :persist => true)
+  - driver_genes = donor_drivers.include?(donor) ? donor_drivers[donor]["Associated Gene Name"].ensembl : []
+
 
   - if sample.num_genomic_mutations > 0
     %dl
       %dt Genomic Mutations
       %dd= sample.num_genomic_mutations
 
-      %dt Mutated (principal) Isoforms
-      - isoforms = sample.mi(:principal => true) #.collect{|mi| mi.to_s}
-      %dd= MutatedIsoform.setup(isoforms, sample.organism).list_link :length, "Mutated (principal) Isoforms in #{ sample }"
+      - list_container = ListContainer.new
+      - list_container.add "#{donor} mutated principal isoforms", MutatedIsoform.setup(sample.mi(:principal => true), PCAWG.organism)
+      - list_container.add "#{donor} affected genes", sample.get_genes(:affected)
+      - list_container.add "#{donor} damaged genes", sample.get_genes(:damaged)
+      - list_container.add "#{donor} driver genes", driver_genes
 
-      %dt Affected genes
-      %dd= sample.get_genes(:affected).list_link :length, "Affected genes in #{ sample }"
-
-      %dt Damaged genes
-      %dd= sample.get_genes(:damaged).list_link :length, "Damaged genes in #{ sample }"
+      
+      = list_container_render(list_container)
 
     = table :table_id => "Sample gene status #{ sample }" do
       - sample.gene_sample_mutation_status

@@ -1,87 +1,38 @@
 %h2 Graph
 
+- require 'sinatra/entity_graph'
 - study = entity
-- genes = study.recurrent_genes(:job, :_recurrent_threshold => 0.2).run
+- kb = @step.knowledge_base
+- kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
+- assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
+- entity_graph = EntityGraph.new
+- entity_graph.add_associations assocs
 
-:sass
-  #plot .window
-    height: 1000px
-    width: 1000px
-    border: 1px solid black
-  .menu
-    &.inactive
-      display: none
-    textarea
-      height: 500px
+- fusion_donors = study.donors.select{|d| Gene.setup(d.SV_candidate_genes, "Ensembl Gene ID", PCAWG.organism).name.include? "ERG" }
+- entity_graph.add_rule :property => :name, :entity_type => "Gene"
+- entity_graph.add_rule :name => :fusion, :entity_type => "Sample", :subset => []
 
+- entity_graph.add_aes_rule :aes => :label, :name => :name, :entity_type => "Gene", :mapper => :direct
+- entity_graph.add_aes_rule :aes => :label, :name => :code, :entity_type => "Sample", :mapper => :direct
+- entity_graph.add_aes_rule :aes => :color, :value => "blue", :entity_type => "Gene"
+- entity_graph.add_aes_rule :aes => :color, :name => :fusion, :mapper => :map, :entity_type => "Sample", :mapper_obj => {:true => 'red', :false => 'green'}
 
-#plot
-  .tool
-  .window
+%svg#plot_svg
+
+#plot(style='height:500px;width:100%')
+
+.ui.button#mark_but Mark
 
 :deferjs
-  //var genes = #{genes.to_json}
+  var model=#{entity_graph.model.to_json}
+  //rbbt.plots.graph.view_d3js_graph(model, $("#plot_svg")[0])
+  rbbt.plots.graph.view_cytoscapejs(model, $("#plot")[0])
 
-  //var plot = $("#plot .window")
-  //var menu = $('#plot .menu')
-
-  //var model
-
-  //$('.toggle_menu').click(function(){
-  //  $('.menu').toggleClass('.inactive')
-  //})
-
-  //rbbt.plots.graph.parents(db, genes, "Gene").then(function(assocs){
-
-  //  rbbt.plots.graph.filter_associations(assocs, function(info){
-  //    return info.affected == "true"
-  //  })
-
-  //  rbbt.plots.graph.view_cytoscapejs(model, plot)
-  //})
-
-  model = {associations: {}, rules:[], aes_rules: [], edge_rules: [], edge_aes_rules: []}
-
-  model.rules.push({property: 'name', entity_type: "Gene"})
-  model.rules.push({name:'name', property: 'donor', entity_type: "Sample"})
-  model.aes_rules.push({name: 'name', aes:'label'})
-  model.aes_rules.push({entity_type: 'Gene', aes:'color', value: 'red'})
-  model.edge_rules.push({name:'affected', info: 'broken'})
-  model.edge_aes_rules.push({aes:'color', name: 'affected', mapper: 'map', mapper_obj: {'true':'red', 'false':'blue'}})
-
-  var mcomp = {}
-  mcomp.model = model
-  mcomp.study = "#{study}"
-  mcomp.Gene = ["ENSG00000255561"]
-  mcomp.Sample = ["DO856"]
-  mcomp.plot = $('#plot .window')
-
-  mcomp.controller = function(){
-    console.log(mcomp)
-    var db = 'sample_genes@' + mcomp.study
-    rbbt.plots.graph.subset(db, mcomp.Sample, mcomp.Gene).then(function(assocs){
-
-      rbbt.plots.graph.filter_associations(assocs, function(info){
-        return info.affected == "true"
-      })
-
-      mcomp.model.associations[db] = assocs
-      mcomp.model.entities = undefined
-      console.log(mcomp.model)
-      rbbt.plots.graph.view_cytoscapejs(mcomp.model, mcomp.plot)
-    })
-  }
+  var fusion_donors = #{fusion_donors.to_json}
+  $('#mark_but').click(function(){
+    model.rules.push({entity_type: "Sample", name: 'fusion', subset: fusion_donors})
+    rbbt.plots.graph.view_cytoscapejs(model, $("#plot"))
+    //rbbt.plots.graph.update_cytoscape(model, $("#plot"))
+  })
 
 
-  mcomp.view = function(ctrl){
-    var entities = []
-    forHash(model.entities, function(type, info){
-      var textarea = m('textarea', {oninput: m.withAttr('value', function(text){mcomp[type] = text.split("\n"), mcomp.controller()})},info.codes.join("\n"))
-      entities.push(textarea)
-    })
-    return m('div',entities)
-  }
-
-  rbbt.mount($('#plot .tool')[0], mcomp)
-
-  

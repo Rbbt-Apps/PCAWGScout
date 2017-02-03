@@ -20,13 +20,16 @@
 
 
 = action_card_render action_card do
+  - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :persist => true)
+  - driver_genes = donor_drivers.include?(donor) ? donor_drivers[donor]["Associated Gene Name"] : []
 
   - PCAWG.pandrugs.produce
 
   - fields = []
   - fields << "Drug"
-  - fields << "Affected protein"
-  - fields << "Mutation"
+  - fields << "Affected gene"
+  - fields << "Protein mutation"
+  - fields << "Driver?"
   - fields << "D score"
   - fields << "G score"
   - fields << "Sensitivity / Resistence"
@@ -71,24 +74,26 @@
           
     - drug = show_drug_name
 
-    - affected_gene = gene_symbol
-    - target_gene = gene
+    - affected_gene = entrez_id
+    - target_gene = gene_symbol
 
     - mi = mis.select{|mi| ensp2gn[mi.split(":").first] == affected_gene}
+    - next if mi.empty?
     - id = Misc.digest([drug, affected_gene, target_gene].inspect)
-    - [id, [drug, mi, score, max_vscore, resistance, status_str, extra2, source, relation, target_gene, alteration, target_marker]]
+    - driver = driver_genes.include? affected_gene
+    - [id, [drug, affected_gene, mi, driver, score, max_vscore, resistance, status_str, extra2, source, relation, target_gene, alteration, target_marker]]
 
   - clean_tsv = tsv.annotate({})
   - tsv.each do |id,values|
-    - clean_tsv[id] = values.collect{|v| v.uniq}
+    - clean_tsv[id] = values.collect{|v| v.flatten.uniq}
 
   - filtered_tsv = clean_tsv.annotate({})
   - clean_tsv.each do |id,values|
-    - drug, gene, dscore, gscore,*rest = values
-    - next unless dscore.select{|s| s.to_f.abs > 0.5}.any?
-    - next unless gscore.select{|s| s.to_f.abs > 0.5}.any?
+    - drug, gene, mi, driver, dscore, gscore,*rest = values
+    - next unless dscore.select{|s| s.to_f.abs > 0.5}.any? or gscore.select{|s| s.to_f.abs > 0.5}.any? or driver.to_s == 'true'
     - filtered_tsv[id] = values.collect{|v| v.uniq}
-  - header "Affected protein", "Mutated Isoform"
+  - header "Affected gene", "Ensembl Gene ID", :organism => PCAWG.organism
+  - header "Protein mutation", "Mutated Isoform"
   - header "Target gene", "Gene", :format => "Associated Gene Name"
   = table :row_ids => :consume do 
     - filtered_tsv
