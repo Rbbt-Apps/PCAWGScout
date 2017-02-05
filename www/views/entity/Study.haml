@@ -1,3 +1,4 @@
+- require 'rbbt/rest/common/tabs'
 - study = entity
 
 - entity_card = EntityCard.new(study)
@@ -82,24 +83,63 @@
               %dt #{type} drivers
               %dd= study.drivers(type).list_link :length, "#{ type } consensus drivers for #{ entity }"
 
-- require 'rbbt/rest/common/tabs'
-- require 'sinatra/entity_graph'
-- entity_card.add_section "Driver network" do
-  - kb = @step.knowledge_base
-  - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
-  - assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
-  - entity_graph = EntityGraph.new
-  - entity_graph.add_associations assocs
-  :deferjs
-    var model=#{entity_graph.model}
-    console.log(model)
+- if study.has_drivers?
+  - entity_card.add_section "Driver incidence" do
+    - donor_mis = {}
+    - ensg2name = Organism.identifiers(PCAWG.organism).index :target => "Associated Gene Name", :persist => true
+    - study.donors.each do |donor|
+      - donor_mis[donor] = {}
+      - donor_mis[donor][:CDS] =  MutatedIsoform.setup(donor.mi(:non_synonymous => true), PCAWG.organism).protein.gene.uniq
+      - donor_mis[donor][:UTR3] = Transcript.setup(donor.genomic_mutation_consequence.values.flatten.select{|mi| mi =~ /UTR3/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
+      - donor_mis[donor][:UTR5] = Transcript.setup(donor.genomic_mutation_consequence.values.flatten.select{|mi| mi =~ /UTR5/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
+      - donor_mis[donor][:promCore] = donor.get_genes("TSS promoter (1000 bp)")
+
+    - driver_samples_CDS = {}
+    - driver_samples_3UTR = {}
+    - driver_samples_5UTR = {}
+    - driver_samples_promCore = {}
+
+    - study_donors =  study.donors
+    - study.drivers("CDS").each do |gene|
+      - donors = study_donors.select{|d| donor_mis[d][:CDS].include? gene }
+      - name = ensg2name[gene]
+      - driver_samples_CDS[name] = donors
+
+    - study.drivers("3UTR").each do |gene|
+      - donors = study_donors.select{|d| donor_mis[d][:UTR3].include? gene }
+      - next if donors.empty?
+      - name = ensg2name[gene]
+      - driver_samples_3UTR[name] = donors
+
+    - study.drivers("5UTR").each do |gene|
+      - donors = study_donors.select{|d| donor_mis[d][:UTR5].include? gene }
+      - next if donors.empty?
+      - name = ensg2name[gene]
+      - driver_samples_5UTR[name] = donors
+
+    - study.drivers("promCore").each do |gene|
+      - donors = study_donors.select{|d| donor_mis[d][:promCore].include? gene }
+      - next if donors.empty?
+      - name = ensg2name[gene]
+      - driver_samples_promCore[name] = donors
+
+    - driver_samples = {:CDS => driver_samples_CDS, :UTR3 => driver_samples_3UTR, :UTR5 => driver_samples_5UTR, :promCore => driver_samples_promCore}
+    - all_genes = driver_samples.collect{|t,i| i.keys}.flatten.uniq.sort_by{|g| driver_samples.values.collect{|v| v[g]}.flatten.compact.uniq.length}.reverse
+    - all_genes = all_genes.select{|g| driver_samples.collect{|t,i| i[g] }.flatten.uniq.length > 3 }
+    - plot_data = []
+    - driver_samples.each do |type, info|
+      - p = []
+      - all_genes.each do |g|
+        - d = info[g] || []
+        - p << {_x: all_genes.index(g) + 1, y: d.length, x: g}
+      - plot_data << {:key => type, :values => p}
+      
+    = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :x_label => 'Driver gene', :y_label => 'Number of donors'
 
 
-
-- entity_card.add_section "Driver network" do
-  = tabs do |t|
-    - t.active "Sample"
-    - if study.has_drivers?  and false
+  - entity_card.add_section "Driver network" do
+    = tabs do |t|
+      - t.active "Sample"
       - t.add "Cohort" do
         - driver_by_type = TSV.setup({}, :fields => ["Ensembl Gene ID"], :key_field => "Driver type", :type => :flat)
         - all_drivers = Set.new
@@ -112,13 +152,13 @@
         = graph do |kb|
           - add_entities Gene.setup(all_drivers.to_a, "Ensembl Gene ID", PCAWG.organism)
 
-    - t.add "Sample" do
-      - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :type => :flat, :fields => ["Associated Gene Name"]).swap_id "Associated Gene Name", "Ensembl Gene ID"
+      - t.add "Sample" do
+        - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :type => :flat, :fields => ["Associated Gene Name"]).swap_id "Associated Gene Name", "Ensembl Gene ID"
 
-      = graph do |kb|
-        - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
-        - assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
-        - add_associations assocs
+        = graph do |kb|
+          - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
+          - assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
+          - add_associations assocs
 
 - entity_card.action_controller = default_action_controller entity
 
