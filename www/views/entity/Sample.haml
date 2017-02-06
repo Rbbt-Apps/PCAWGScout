@@ -53,44 +53,6 @@
       
       = list_container_render(list_container)
 
-    = table :table_id => "Sample gene status #{ sample }" do
-      - sample.gene_sample_mutation_status
-
-    = table :table_id => "Sample SV boundaries #{ sample }", :class => 'sv_table' do
-      - tsv =  sample.SV_boundaries
-      - tsv.namespace = PCAWG.organism
-      - tsv.add_field "Type" do |key,values|
-        - key.split(":")[2]
-      - tsv
-
-
-    - if sample.has_expression?
-      - boundary_genes =  sample.SV_boundaries.values.compact.flatten.uniq
-      - boundary_gene_color = {}
-      - mat = study.matrix(:gene_expression).tsv
-      - mutation_genes = sample.gene_sample_mutation_status.keys
-      - (mutation_genes + boundary_genes).each do |gene|
-        - values = mat[gene]
-        - next if values.nil?
-        - next if values.compact.flatten.uniq.length < 3
-        - sample_values = values.values_at(*sample.expression_samples).flatten.compact.collect{|f| f.to_f}
-        - next if sample_values.compact.empty?
-        - value = Misc.mean(sample_values)
-        - color = Colorize.rank_gradient(values.flatten.compact.collect{|v| v.to_f}, value, "#0F0", "#F00")
-        - boundary_gene_color[gene] = color
-
-      :deferjs
-        var g_color = #{boundary_gene_color.to_json}
-        register_dom_update('.entity.Gene', function(elems){
-          $(elems).each(function(i,e){
-          var gene = $(e).attr('attr-entity_id')
-          var color = g_color[gene];
-          console.log([gene, color])
-          $(e).css('color', color)
-          })
-        })
-        update_dom()
-
     
 - entity_card.action_controller = default_action_controller sample
 

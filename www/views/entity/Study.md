@@ -5,9 +5,25 @@
 This report shows general information about PCAWG cohorts and allows to perform
 several cohort-based analyses. The term study is used to refer to cohorts.
 
-## Sections
+### Driver genes
 
-The overview section shows:
+We have two types of driver reports: the integrated cohort driver calls
+produced by the driver group, and the sample level driver calls produced by the
+patient-centric analysis group.
+
+For cohort level donors there are driver calls for CDS, 3'UTR, 5'UTR, promoter
+core, and enhancers (enhancers are regions not genes). These were selected by
+considering the 0.1 q-value (BH FDR correction). These are semi-final results.
+
+Integrated driver calls are represented under the driver incidence where the
+donors where independently examined for alterations over the driver regions.
+The annotations used here could be slightly different than those used by the
+driver call, in particular promoter core regions. These are also represented in
+the 'Cohort' driver network.
+
+Sample level drivers are shown in the 'Sample' driver network. These results
+are temporary while the final set is produced based on the final integrated
+calls.
 
 
 ## Actions

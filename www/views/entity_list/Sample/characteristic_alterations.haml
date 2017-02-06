@@ -10,6 +10,17 @@
   - use_CNV = false unless defined? use_CNV 
   - all_donors = Study.setup(list.cohort).samples
 
+  - if database.to_s != "none"
+    - log :finding_annotations, "Finding database annotations for genes in donor list"
+    - file, options = Enrichment::REGISTRY[database]
+    - identifier_file = Organism.identifiers(PCAWG.organism)
+    - file = file.sub("NAMESPACE", PCAWG.organism)
+    - options[:namespace] = PCAWG.organism
+    - if options[:target]
+      - index = Association.index(file, options.merge(:source => options[:target], :source_format => "Ensembl Gene ID", :target => nil, :identifiers => identifier_file, :sep2 => '|'))
+    - else
+      - index = Association.index(file, options.merge(:source_format => "Ensembl Gene ID", :target => nil, :identifiers => identifier_file, :sep2 => '|'))
+
   - donors = all_donors
 
   - log :finding_genes, "Finding genes for each donor"
@@ -47,16 +58,8 @@
     - genes = lists.first.annotate lists.flatten.uniq
     - donor_genes[donor] = genes
 
-  - if database.to_s != "none"
-    - log :finding_annotations, "Finding database annotations for genes in donor list"
-    - file, options = Enrichment::REGISTRY[database]
-    - identifier_file = Organism.identifiers(PCAWG.organism)
-    - file = file.sub("NAMESPACE", PCAWG.organism)
-    - if options[:target]
-      - index = Association.index(file, options.merge(:source => options[:target], :source_format => "Ensembl Gene ID", :target => nil, :identifiers => identifier_file))
-    - else
-      - index = Association.index(file, options.merge(:source_format => "Ensembl Gene ID", :target => nil, :identifiers => identifier_file))
 
+  - if database.to_s != "none"
     - donor_pathways = {}
     - donor_genes.each do |donor,genes|
       - path = index.subset(genes, :all)
@@ -91,7 +94,6 @@
     - donors << donor_genes.select{|s,gs| gs.include? gene}.collect{|s,g| s}
 
   - donors = donors.flatten.uniq
-  -# donors = (donors & list) + (donors - list)
   - rest = all_donors - list
   - donors = (donors & list) + (list - donors) + (donors & rest) + (rest - donors)
 
@@ -99,17 +101,17 @@
   - log :incidence, "Finding gene incidence"
   - traverse genes, "Incidence for affected genes" do |gene|
     - incidence_affected[gene] = donors.collect do |donor|
-      - if donor_affected_genes.include?(donor) 
+      - if database != "none"
+        - donor_genes[donor] && donor_genes[donor].include?(gene)
+      - elsif donor_affected_genes.include?(donor) 
         - donor_affected_genes[donor].include? gene
-      - elsif database != "none" 
-        - donor_genes[donor].include? gene
       - else
         - false
 
   - incidence_lost = {}
   - traverse genes, "Incidence for lost genes" do |gene|
     - incidence_lost[gene] = donors.collect do |donor|
-      - if donor_lost_genes.include?(donor)
+      - if donor_lost_genes.include?(donor) 
         - donor_lost_genes[donor].include? gene
       - else
         - false
@@ -117,10 +119,10 @@
   - incidence_gained = {}
   - traverse genes, "Incidence for gained genes" do |gene|
     - incidence_gained[gene] = donors.collect do |donor|
-      - if donor_gained_genes.include?(donor)
+      - if donor_gained_genes.include?(donor) 
         - donor_gained_genes[donor].include? gene
       - else
-        - false 
+        - false
 
   :sass
     $header_size: 6em
@@ -149,8 +151,8 @@
       .tile
         width: $tile_width
         margin-left: $tile_margin
-        //margin-bottom: -0.5em
-        margin-bottom: 0.4em
+        margin-bottom: -0.5em
+        //margin-bottom: 0.4em
         height: 0.5em
         display: inline-block
         vertical-align: bottom

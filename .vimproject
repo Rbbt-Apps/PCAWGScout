@@ -1,9 +1,9 @@
 PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
  etc=etc filter="*"{
   entities
-  remote_tasks
-  workflows
+  remote_tasks.save
   requires
+  workflows
   app.d=app.d{
    post.rb
   }
@@ -47,6 +47,8 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
     Sample.haml
     Sample=Sample{
      Pandrugs.haml
+     structural_variants.haml
+     gene_status.haml
     }
     StructuralVariant.haml
     Study.haml

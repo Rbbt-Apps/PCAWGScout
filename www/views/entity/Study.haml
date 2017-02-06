@@ -73,15 +73,26 @@
         = tool :nvd3, :plot => 'histogram', :values => mutation_bin_donors, :height => '15em', :width => '100%', :x_label => 'Num. Mutations', :y_label => 'Number of donors'
 
     - if study.has_drivers? 
-      .column
+      -#.column
         .ui.header
-          Integrated driver calls
+          Integrated driver calls (p-value < 0.01)
         .ui.content
           %dl
             - types = %w(CDS 3UTR  5UTR enhancer promCore)
             - types.each do |type|
               %dt #{type} drivers
-              %dd= study.drivers(type).list_link :length, "#{ type } consensus drivers for #{ entity }"
+              %dd= study.drivers(type, 0.01, false).list_link :length, "#{ type } consensus drivers for #{ entity }"
+
+      .column
+        .ui.header
+          Integrated driver calls (q-value < 0.1)
+        .ui.content
+          - list_container = ListContainer.new
+          - types = %w(CDS 3UTR  5UTR enhancer promCore)
+          - types.each do |type|
+            - list_container.add "#{type} consensus drivers for #{entity}", study.drivers(type,0.1, true)
+      
+          = list_container_render(list_container)
 
 - if study.has_drivers?
   - entity_card.add_section "Driver incidence" do
@@ -125,7 +136,7 @@
 
     - driver_samples = {:CDS => driver_samples_CDS, :UTR3 => driver_samples_3UTR, :UTR5 => driver_samples_5UTR, :promCore => driver_samples_promCore}
     - all_genes = driver_samples.collect{|t,i| i.keys}.flatten.uniq.sort_by{|g| driver_samples.values.collect{|v| v[g]}.flatten.compact.uniq.length}.reverse
-    - all_genes = all_genes.select{|g| driver_samples.collect{|t,i| i[g] }.flatten.uniq.length > 3 }
+    - all_genes = all_genes.select{|g| driver_samples.collect{|t,i| i[g] }.flatten.uniq.length > 2 }
     - plot_data = []
     - driver_samples.each do |type, info|
       - p = []
@@ -134,7 +145,7 @@
         - p << {_x: all_genes.index(g) + 1, y: d.length, x: g}
       - plot_data << {:key => type, :values => p}
       
-    = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :x_label => 'Driver gene', :y_label => 'Number of donors'
+    = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :y_label => 'Number of donors'
 
 
   - entity_card.add_section "Driver network" do
