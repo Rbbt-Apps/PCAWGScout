@@ -90,8 +90,8 @@
     - study.donors.each do |donor|
       - donor_mis[donor] = {}
       - donor_mis[donor][:CDS] =  MutatedIsoform.setup(donor.mi(:non_synonymous => true), PCAWG.organism).protein.gene.uniq
-      - donor_mis[donor][:UTR3] = Transcript.setup(donor.genomic_mutation_consequence.values.flatten.select{|mi| mi =~ /UTR3/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
-      - donor_mis[donor][:UTR5] = Transcript.setup(donor.genomic_mutation_consequence.values.flatten.select{|mi| mi =~ /UTR5/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
+      - donor_mis[donor][:UTR3] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR3/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
+      - donor_mis[donor][:UTR5] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR5/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
       - donor_mis[donor][:promCore] = donor.get_genes("TSS promoter (1000 bp)")
 
     - driver_samples_CDS = {}
