@@ -12,9 +12,9 @@
   - donor_mis[donor][:UTR5] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR5/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
   - donor_mis[donor][:promCore] = donor.get_genes("TSS promoter (1000 bp)")
 
-  - donor_CNV[donor] = {}
-  - donor_CNV[donor][:lost] = donor.get_genes("completly_lost")
-  - donor_CNV[donor][:gain] = donor.get_genes("big_gain")
+  -# donor_CNV[donor] = {}
+  -# donor_CNV[donor][:lost] = donor.get_genes("completly_lost")
+  -# donor_CNV[donor][:gain] = donor.get_genes("big_gain")
 
 - driver_samples_CDS = {}
 - driver_samples_3UTR = {}
@@ -24,7 +24,6 @@
 - driver_samples_gain = {}
 
 - all_drivers = donor_mis.values.collect{|i| i.values}.flatten.uniq.compact
-- iif all_drivers
 
 - study_donors =  study.donors
 - args = pvalues ? [0.01, false] : [0.1, true]
@@ -51,24 +50,24 @@
   - name = ensg2name[gene]
   - driver_samples_promCore[name] = donors
 
-- all_drivers.each do |gene|
+-# all_drivers.each do |gene|
   - donors = study_donors.select{|d| donor_CNV[d][:lost].include? gene }
   - next if donors.empty?
   - name = ensg2name[gene]
   - driver_samples_lost[name] = donors
 
-- all_drivers.each do |gene|
+-# all_drivers.each do |gene|
   - donors = study_donors.select{|d| donor_CNV[d][:gain].include? gene }
   - next if donors.empty?
   - name = ensg2name[gene]
   - driver_samples_gain[name] = donors
 
 
-- driver_samples = {:CDS => driver_samples_CDS, :UTR3 => driver_samples_3UTR, :UTR5 => driver_samples_5UTR, :promCore => driver_samples_promCore, :Lost => driver_samples_lost, :Gained => driver_samples_gain}
-- all_genes = driver_samples.collect{|t,i| i.keys}.flatten.uniq.sort_by{|g| driver_samples.values.collect{|v| v[g]}.flatten.compact.uniq.length}.reverse & all_drivers
+- driver_samples = {:CDS => driver_samples_CDS, :UTR3 => driver_samples_3UTR, :UTR5 => driver_samples_5UTR, :promCore => driver_samples_promCore}
+- all_genes = driver_samples.collect{|t,i| i.keys}.flatten.uniq.sort_by{|g| driver_samples.values.collect{|v| v[g]}.flatten.compact.uniq.length}.reverse 
 - all_genes = all_genes.select{|g| driver_samples.collect{|t,i| i[g] }.flatten.uniq.length > 2 }
-- driver_samples[:Lost] = driver_samples_lost
-- driver_samples[:Gain] = driver_samples_gain
+-# driver_samples[:Lost] = driver_samples_lost
+-# driver_samples[:Gain] = driver_samples_gain
 
 - plot_data = []
 - driver_samples.each do |type, info|
