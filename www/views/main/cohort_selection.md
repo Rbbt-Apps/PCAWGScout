@@ -15,9 +15,15 @@ such as carcinomas or lymphomas.
 Finally there are cohorts made around all four histology tiers and the tumor
 histological type.
 
-## Hyper-mutators
+### Hyper-mutators
 
 There are certain tumors that contain very large numbers of mutations, called
 hyper-mutated, and which might negatively affect certain analyses. PCAWG-Scout
 provides alternative cohorts without hyper-mutators accessible through the _NH_ 
-links
+links.
+
+### Official cohorts and extended data
+
+Some of the cohorts have extended data, in particular driver gene predictions.
+These are all the abbreviations, except for those that have a small number of
+donors, and the meta-cohorts. 

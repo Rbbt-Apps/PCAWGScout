@@ -53,6 +53,14 @@
       
       = list_container_render(list_container)
 
+    - header "Gene", "Gene", :format =>  "Ensembl Gene ID"
+    = table do
+      - tsv = TSV.setup({}, :key_field => 'Gene', :fields => ["Mutated Isoform"], :type => :flat, :namespace => PCAWG.organism)
+      - MutatedIsoform.setup(sample.mi(:principal => true), PCAWG.organism).each do |mi|
+        - gene = mi.protein.gene
+        - tsv[gene] ||= []
+        - tsv[gene] << mi
+      - tsv
     
 - entity_card.action_controller = default_action_controller sample
 

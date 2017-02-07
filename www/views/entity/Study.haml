@@ -9,167 +9,113 @@
   %h1 Meta
 
 - entity_card.add_section "Overview" do
-  .ui.stackable.three.column.grid
-    .column
-      .ui.header
-        Donors
-      
-      .ui.content
-        %dl
-          %dt Registered donors 
-          %dd= study.donors.list_link :length, "Donors in #{ study }"
-
-          - if study.respond_to?(:has_genotypes?) and study.has_genotypes?
-            - donors = study.genotyped_samples
-            %dt Genotyped donors
-            %dd= donors.list_link :length, "Genotyped donors in #{ study }"
-
-          - if study.respond_to?(:has_cnv?) and study.has_cnv?
-            - donors = study.donors.select{|s| s.has_cnv? }
-            %dt CNV donors
-            %dd= donors.list_link :length, "CNV donors in #{ study }"
-
-          - if study.respond_to?(:has_sv?) and study.has_sv?
-            - donors = study.donors.select{|s| s.has_sv? }
-            %dt SV donors
-            %dd= donors.list_link :length, "SV donors in #{ study }"
-
-
-      - if study.respond_to?(:matrices) and study.matrices.any?
+  .ui.stackable.grid
+    .row
+      .six.wide.column
         .ui.header
-          Matrices
+          Donors
         
         .ui.content
           %dl
-            - study.matrices.each do |matrix|
-              %dt #{matrix} donors
-              %dd
-                - if study.matrix(matrix).samples
-                  = fragment do
-                    = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Donors in #{study} matrix #{matrix}"
-                - else
-                  0
-    .column
-      .ui.header
-        Mutation density
-      .ui.content
-        - mutation_histogram = TSV.setup({}, :key_field => 'label', :fields => ['value'], :type => :single, :cast => :to_i)
-        - study.donors.sort_by{|d|d.num_genomic_mutations}.each do |donor|
-          - mutation_histogram[donor] = donor.num_genomic_mutations
-        - mutation_counts = mutation_histogram.values.flatten
-        - bins = 10
-        - min = mutation_counts.min
-        - max = mutation_counts.max
-        - range = max-min
-        - bin_size = range / bins
-        - mutation_bin_donors = TSV.setup({}, :key_field => "label", :fields => ["value"], :type => :single, :cast => :to_i)
-        - mutation_histogram.through do |donor, counts|
-          - bin = (counts - min) / bin_size
-          - bin_name = [min + bin*bin_size, min + (bin+1)*bin_size].collect{|n| n < 1000 ? n.to_s : (n/1000).to_s + 'K'}
-          - bin_name = bin_name * ".."
-          - mutation_bin_donors[bin_name] ||= 0
-          - mutation_bin_donors[bin_name] += 1
+            %dt Registered donors 
+            %dd= study.donors.list_link :length, "Donors in #{ study }"
 
-        = tool :nvd3, :plot => 'histogram', :values => mutation_bin_donors, :height => '15em', :width => '100%', :x_label => 'Num. Mutations', :y_label => 'Number of donors'
+            - if study.respond_to?(:has_genotypes?) and study.has_genotypes?
+              - donors = study.genotyped_samples
+              %dt Genotyped donors
+              %dd= donors.list_link :length, "Genotyped donors in #{ study }"
 
-    - if study.has_drivers? 
-      -#.column
+            - if study.respond_to?(:has_cnv?) and study.has_cnv?
+              - donors = study.donors.select{|s| s.has_cnv? }
+              %dt CNV donors
+              %dd= donors.list_link :length, "CNV donors in #{ study }"
+
+            - if study.respond_to?(:has_sv?) and study.has_sv?
+              - donors = study.donors.select{|s| s.has_sv? }
+              %dt SV donors
+              %dd= donors.list_link :length, "SV donors in #{ study }"
+
+
+        - if study.respond_to?(:matrices) and study.matrices.any?
+          .ui.header
+            Matrices
+          
+          .ui.content
+            %dl
+              - study.matrices.each do |matrix|
+                %dt #{matrix} donors
+                %dd
+                  - if study.matrix(matrix).samples
+                    = fragment do
+                      = Sample.setup(study.matrix(matrix).samples.dup, study).list_link :length, "Donors in #{study} matrix #{matrix}"
+                  - else
+                    0
+      .ten.wide.column
+        .ui.header
+          Mutation density
+        .ui.content
+          - mutation_histogram = TSV.setup({}, :key_field => 'label', :fields => ['value'], :type => :single, :cast => :to_i)
+          - study.donors.sort_by{|d|d.num_genomic_mutations}.each do |donor|
+            - mutation_histogram[donor] = donor.num_genomic_mutations
+          - mutation_counts = mutation_histogram.values.flatten
+          - bins = 10
+          - min = mutation_counts.min
+          - max = mutation_counts.max
+          - range = max-min
+          - bin_size = range / bins
+          - mutation_bin_donors = TSV.setup({}, :key_field => "label", :fields => ["value"], :type => :single, :cast => :to_i)
+          - mutation_histogram.through do |donor, counts|
+            - bin = (counts - min) / bin_size
+            - bin_name = [min + bin*bin_size, min + (bin+1)*bin_size].collect{|n| n < 1000 ? n.to_s : (n/1000).to_s + 'K'}
+            - bin_name = bin_name * ".."
+            - mutation_bin_donors[bin_name] ||= 0
+            - mutation_bin_donors[bin_name] += 1
+
+          = tool :nvd3, :plot => 'histogram', :values => mutation_bin_donors, :height => '15em', :width => '100%', :x_label => 'Num. Mutations', :y_label => 'Number of donors'
+
+- if study.has_drivers? 
+  - entity_card.add_section "Cohort drivers" do
+    .ui.stackable.grid
+      .six.wide.column
         .ui.header
           Integrated driver calls (p-value < 0.01)
         .ui.content
-          %dl
-            - types = %w(CDS 3UTR  5UTR enhancer promCore)
-            - types.each do |type|
-              %dt #{type} drivers
-              %dd= study.drivers(type, 0.01, false).list_link :length, "#{ type } consensus drivers for #{ entity }"
+          - list_container = ListContainer.new
+          - types = %w(CDS 3UTR  5UTR enhancer promCore)
+          - types.each do |type|
+            - drivers = study.drivers(type,0.01, false)
+            - drivers.each{|d| d.sub!(/^chr/,'') } if type == 'enhancer'
+            - list_container.add "#{type} consensus drivers for #{entity}", drivers 
+      
+          = list_container_render(list_container)
 
-      .column
+      .ten.wide.column
+        = partial_render('partials/driver_incidence', :study => study, :pvalues => true)
+    .ui.stackable.grid
+      .six.wide.column
         .ui.header
           Integrated driver calls (q-value < 0.1)
         .ui.content
           - list_container = ListContainer.new
           - types = %w(CDS 3UTR  5UTR enhancer promCore)
           - types.each do |type|
-            - list_container.add "#{type} consensus drivers for #{entity}", study.drivers(type,0.1, true)
+            - drivers = study.drivers(type,0.1, true)
+            - drivers.each{|d| d.sub!(/^chr/,'') } if type == 'enhancer'
+            - list_container.add "#{type} consensus drivers for #{entity}", drivers 
       
           = list_container_render(list_container)
+      .ten.wide.column
+        = partial_render('partials/driver_incidence', :study => study)
 
-- if study.has_drivers?
-  - entity_card.add_section "Driver incidence" do
-    - donor_mis = {}
-    - ensg2name = Organism.identifiers(PCAWG.organism).index :target => "Associated Gene Name", :persist => true
-    - study.donors.each do |donor|
-      - donor_mis[donor] = {}
-      - donor_mis[donor][:CDS] =  MutatedIsoform.setup(donor.mi(:non_synonymous => true), PCAWG.organism).protein.gene.uniq
-      - donor_mis[donor][:UTR3] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR3/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
-      - donor_mis[donor][:UTR5] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR5/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
-      - donor_mis[donor][:promCore] = donor.get_genes("TSS promoter (1000 bp)")
+  
 
-    - driver_samples_CDS = {}
-    - driver_samples_3UTR = {}
-    - driver_samples_5UTR = {}
-    - driver_samples_promCore = {}
+- entity_card.add_section "Sample drivers" do
+  - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :type => :flat, :fields => ["Associated Gene Name"]).swap_id "Associated Gene Name", "Ensembl Gene ID"
 
-    - study_donors =  study.donors
-    - study.drivers("CDS").each do |gene|
-      - donors = study_donors.select{|d| donor_mis[d][:CDS].include? gene }
-      - name = ensg2name[gene]
-      - driver_samples_CDS[name] = donors
-
-    - study.drivers("3UTR").each do |gene|
-      - donors = study_donors.select{|d| donor_mis[d][:UTR3].include? gene }
-      - next if donors.empty?
-      - name = ensg2name[gene]
-      - driver_samples_3UTR[name] = donors
-
-    - study.drivers("5UTR").each do |gene|
-      - donors = study_donors.select{|d| donor_mis[d][:UTR5].include? gene }
-      - next if donors.empty?
-      - name = ensg2name[gene]
-      - driver_samples_5UTR[name] = donors
-
-    - study.drivers("promCore").each do |gene|
-      - donors = study_donors.select{|d| donor_mis[d][:promCore].include? gene }
-      - next if donors.empty?
-      - name = ensg2name[gene]
-      - driver_samples_promCore[name] = donors
-
-    - driver_samples = {:CDS => driver_samples_CDS, :UTR3 => driver_samples_3UTR, :UTR5 => driver_samples_5UTR, :promCore => driver_samples_promCore}
-    - all_genes = driver_samples.collect{|t,i| i.keys}.flatten.uniq.sort_by{|g| driver_samples.values.collect{|v| v[g]}.flatten.compact.uniq.length}.reverse
-    - all_genes = all_genes.select{|g| driver_samples.collect{|t,i| i[g] }.flatten.uniq.length > 2 }
-    - plot_data = []
-    - driver_samples.each do |type, info|
-      - p = []
-      - all_genes.each do |g|
-        - d = info[g] || []
-        - p << {_x: all_genes.index(g) + 1, y: d.length, x: g}
-      - plot_data << {:key => type, :values => p}
-      
-    = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :y_label => 'Number of donors'
-
-
-  - entity_card.add_section "Driver network" do
-    = tabs do |t|
-      - t.active "Sample"
-      - t.add "Cohort" do
-        - driver_by_type = TSV.setup({}, :fields => ["Ensembl Gene ID"], :key_field => "Driver type", :type => :flat)
-        - all_drivers = Set.new
-        - types = %w(CDS 3UTR  5UTR promCore)
-        - types.each do |type|
-          - driver_by_type[type] ||= []
-          - driver_by_type[type] += study.drivers(type)
-          - all_drivers += driver_by_type[type]
-
-        = graph do |kb|
-          - add_entities Gene.setup(all_drivers.to_a, "Ensembl Gene ID", PCAWG.organism)
-
-      - t.add "Sample" do
-        - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :type => :flat, :fields => ["Associated Gene Name"]).swap_id "Associated Gene Name", "Ensembl Gene ID"
-
-        = graph do |kb|
-          - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
-          - assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
-          - add_associations assocs
+  = graph do |kb|
+    - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
+    - assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
+    - add_associations assocs
 
 - entity_card.action_controller = default_action_controller entity
 

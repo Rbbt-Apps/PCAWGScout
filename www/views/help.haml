@@ -45,7 +45,7 @@
   of the layout elements shift around or get hidden behind toggle buttons to
   accommodate themselves better to the screen size. The examples below are
   taken from a computer screen. The site layout and style are under revision so
-  the images might not look different, but the functionalitity is the same.
+  the images might look different, but the functionalities are the same.
 
 =partial_render('help/UI')
 
@@ -68,9 +68,12 @@
 
   These files are:
 
-  * joint_fpkm_uq.tsv.gz
-  * October_2016_whitelist_2583.snv_mnv_indel.maf.gz
-  * pcawg_consensus_1.5.160912.somatic.sv.tar.gz
+  * `October_2016_whitelist_2583.snv_mnv_indel.maf.gz`
+  * `autoremoval_final_submission_pkg.tar.gz`
+  * `consensus.20170119.somatic.cna.annotated.tar.gz`
+  * `joint_fpkm_uq.tsv.gz`
+  * `pcawg_consensus_1.6.161116.somatic_svs.tar.gz`
+
 
   The SNV and MNV file is considered sensitive; if you don't have access to it
   you may still run the instance by placing the following text in a file file under
@@ -82,6 +85,7 @@
   Sample:
     http://pcawgscout.bioinfo.cnio.es/Sample:
       - mi
+      - all_mi
       - gene_mutation_status
       - missing_genes
       - compound_mutation_genes
@@ -114,7 +118,7 @@
   recommend to use it remotely, at least at first
 
   ```
-  rbbt workflow remote DbNSFP http://rbbt.bioinfo.cnio.es/DbNSFP
+  rbbt workflow remote add DbNSFP http://rbbt.bioinfo.cnio.es/DbNSFP
   ```
 
   You may also circumvent plenty of work by configuring one of CNIO servers

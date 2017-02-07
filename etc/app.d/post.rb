@@ -25,9 +25,9 @@ class PCAWGScout
               yield(elem)
             end
 
-            PCAWG.all_meta.each do |elem|
-              yield("meta=" + elem)
-            end
+            #PCAWG.all_meta.each do |elem|
+            #  yield("meta=" + elem)
+            #end
 
             #PCAWG.donor_other_cohorts.glob('*').each do |file|
             #  elem = File.basename(file)
