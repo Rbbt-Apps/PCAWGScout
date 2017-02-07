@@ -1,0 +1,7 @@
+
+- donor = sample = entity
+- action_card = ActionCard.new 
+= action_card_render action_card do
+  = table :table_id => "Sample gene status #{ sample }" do
+    - sample.gene_sample_mutation_status
+

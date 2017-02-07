@@ -11,13 +11,26 @@
     for more documentation.  They have been precomputed using the original VCF
     files provided by PCAWG. 
 
-    The associations presented here can be for drugs approved by the FDA, in clinical trials,
-    and experimental. For direct drug-targer relationships or for markers of sensitivity
-    and resistance, and for direct gene matches or for matches in up or down-stream.
-    
-    The table shows only recomendations with gene and drug scores above 0.5 in
-    absolute value. Use the link below to retrieve the complete result.
+    The associations presented here can be for drugs approved by the FDA, in
+    clinical trials, and experimental. For direct drug-targer relationships or
+    for markers of sensitivity and resistance, and for direct gene matches or
+    for matches in up or down-stream. 
 
+    The associations here come from curated databases and from experimental
+    resources. The evidence is weight by a internal scoring system to rank it
+    for relevance.  The table shows only recomendations with gene and drug
+    scores above 0.5 in absolute value. Use the link below to retrieve the
+    complete result.
+
+    Currently these analysis does not consider CNVs, but a new version is in
+    process.
+
+    The table only shows results with Dscore over 0.5 and a Gscore of over 0.5
+    (both in absolute value) or involving a gene predicted driver.
+
+    The information in this table is *strictly orientative*. Please check the
+    details presented in the table that qualify these associations to asses if
+    the recomendations are actually relevant.
 
 = action_card_render action_card do
   - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :persist => true)

@@ -85,7 +85,7 @@
           - types.each do |type|
             - drivers = study.drivers(type,0.01, false)
             - drivers.each{|d| d.sub!(/^chr/,'') } if type == 'enhancer'
-            - list_container.add "#{type} consensus drivers for #{entity}", drivers 
+            - list_container.add "#{type} consensus drivers for #{entity} (p-value < 0.01)", drivers 
       
           = list_container_render(list_container)
 
@@ -101,7 +101,7 @@
           - types.each do |type|
             - drivers = study.drivers(type,0.1, true)
             - drivers.each{|d| d.sub!(/^chr/,'') } if type == 'enhancer'
-            - list_container.add "#{type} consensus drivers for #{entity}", drivers 
+            - list_container.add "#{type} consensus drivers for #{entity} (q-value < 0.1)", drivers 
       
           = list_container_render(list_container)
       .ten.wide.column

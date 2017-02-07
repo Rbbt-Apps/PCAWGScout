@@ -1,0 +1,41 @@
+- study = entity
+- action_card = ActionCard.new 
+
+- action_card.description do
+  :markdown
+    This action assigns a weight the action of each mutational process in
+    generating the mutations on a sample. The mutational signatures used
+    are those of the Nature 2013 paper (below) and are assigned using the
+    `deconstructSigs` package in R.
+
+    `Alexandrov LB, Nik-Zainal S, Wedge DC, et al.: Signatures of mutational
+    processes in human cancer. Nature. 2013; 500(7463): 415–21`
+
+= action_card_render action_card do
+  - all_tsv = nil
+  - TSV.traverse study.donors, :bar => @step.progress_bar("Extracting donor signatures") do |donor|
+    - tsv = donor.mutation_signature.transpose
+    - tsv.fields = [donor]
+    - if all_tsv.nil?
+      - all_tsv = tsv
+    - else
+      - all_tsv.attach tsv
+
+  - plot_data = []
+  - signatures = all_tsv.keys
+  - signature_sum = {}
+  - signatures.each do |s|
+    - sum = all_tsv[s].inject(0){|acc,v| acc += v.to_f} 
+    - signature_sum[s] = sum
+
+  - all_signatures = signatures.sort_by{|s| signature_sum[s] }.reverse
+  - all_tsv.transpose.each do |donor, info|
+    - p = []
+    - all_signatures.each do |s|
+      - d = info[signatures.index(s)] || 0
+      - p << {y: d.to_f, x: s}
+    - plot_data << {:key => donor, :values => p}
+  = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :y_label => 'Number of donors'
+
+  = table do
+    - all_tsv.transpose
