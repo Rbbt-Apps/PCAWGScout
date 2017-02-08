@@ -37,9 +37,9 @@
 - gene_mi = {}
 - Misc.zip_fields(associations[drug]).each do |affected_gene,gscore,alteration,target_marker,resistance,relation,target_gene,source,mi|
   - next unless mi
+  - next if alteration == "Deletion" || alteration == "Amplification"
   - gene_mi[affected_gene] = mi if mi
   - gene_evidence[[affected_gene, gscore, relation, target_gene]] ||= []
-  - next if alteration == "Deletion" || alteration == "Amplification"
   - gene_evidence[[affected_gene, gscore, relation, target_gene]] << [source, alteration, target_marker, resistance, alteration]
 
 - if gene_evidence.any?
@@ -67,11 +67,15 @@
           %h5  #{affected_gene} #{mi ? " - " + mi.link : mi}
           .ui.description
             - if relation == 'INDIRECT'
-              %p Indirect relationship through #{target_gene}
+              %p 
+                Indirect relationship through 
+                %span.evidence(style='font-weight: bold') #{target_gene}
             %ul
             - sources.each do |info,sources|
               - alteration, target_marker, resistance, alteration, mis = info
               %li
-                #{target_gene} is a #{target_marker == 'target' ? 'target' : ('marker of ' + (resistance || "?")) }, as indicated by #{Misc.humanize_list(sources)}
+                = succeed ',' do
+                  %span.evidence(style='font-weight: bold')< #{target_gene}#{ alteration.nil? ? "" : " " << Misc.humanize(alteration).downcase} is a #{target_marker == 'target' ? 'target' : ('marker of ' + (resistance || "?")) }
+                as indicated by #{Misc.humanize_list(sources)}
             
 

@@ -17,15 +17,8 @@
 
     The associations here come from curated databases and from experimental
     resources. The evidence is weight by a internal scoring system to rank it
-    for relevance.  The table shows only recomendations with gene and drug
-    scores above 0.5 in absolute value. Use the link below to retrieve the
-    complete result.
-
-    Currently these analysis does not consider CNVs, but a new version is in
-    process.
-
-    The table only shows results with Dscore over 0.5 and a Gscore of over 0.5
-    (both in absolute value) or involving a gene predicted driver.
+    for relevance. Currently these analysis does not consider CNVs, but a new
+    version is in process.
 
     The information in this table is *strictly orientative*. Please check the
     details presented for each drug that qualify these associations (e.g.
@@ -44,7 +37,7 @@
   - mis = MutatedIsoform.setup(donor.mi(:principal => true), PCAWG.organism)
   - associations.add_field "Mutated Isoform" do |drug, values|
     - gene = Gene.setup(values["affected_gene"].first, "Associated Gene Name", PCAWG.organism).ensembl
-    - [mis.select{|mi| mi.protein.gene == gene}.first]
+    - [mis.select{|mi| mi.protein.gene == gene}.first] * values["source"].length
 
   - info_fields = %w(score status pathology cancer extra extra2)
   - drug_info = PCAWG.pandrugs[sample].tsv :type => :double, :merge => true, :sep2 => '--NONE--', :key_field => 'show_drug_name', :fields => info_fields
@@ -53,7 +46,7 @@
     - status, pathology, cancer, extra, extra2 = values.values_at(:status, :pathology, :cancer, :extra, :extra2).collect{|v| v.first || "" }
     - [status == "Approved" && pathology.include?("Oncology")].collect{|v| v.to_s}
 
-  - good_keywords = PCAWG.abbr2pandrugs.tsv[donor.abbr].flatten
+  - good_keywords = PCAWG.pandrugs2abbr.tsv.select{|k,v| v.include? donor.abbr}.keys
   - drug_info.add_field "Approved for this tumor" do |k, values|
     - extra = values["extra"] * " | "
     - extra2 = values["extra2"] * " | "
@@ -68,16 +61,16 @@
   - drug_info.add_field "Clinical trials for cancer" do |k, values|
     - [values["status"].first == 'Clinical trials' && (values["cancer"].first || "").include?("cancer") || values["status"].first == "Approved" && (values["cancer"].first || "").include?("clinical cancer")].collect{|v| v.to_s}
 
-  - good_score = drug_info.select("score"){|s| s.uniq.first.to_f.abs > 0.5}
+  - good_score = drug_info.select("score"){|s| s.uniq.first.to_f.abs > 0.2}
 
   -require 'rbbt/rest/common/tabs'
   = tabs do |t|
     - if good_score.select("Approved for this tumor" => 'true').keys.any?
-      - t.active "Approved for this tumor"
+      - t.active "Approv. this tumor"
     - elsif
-      - t.active "Approved for other tumors"
+      - t.active "Approv. other tumors"
 
-    - t.add "Approved for this tumor" do
+    - t.add "Approv. this tumor" do
       - selection = good_score.select("Approved for this tumor" => 'true')
       - if selection.keys.any?
         - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
@@ -85,7 +78,7 @@
       - else
         None
 
-    - t.add "Approved for other tumors" do
+    - t.add "Approv. other tumors" do
       - selection = good_score.select("Approved for oncology" => 'true').select("Approved for this tumor" => 'false')
       - if selection.keys.any?
         - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
@@ -93,7 +86,7 @@
       - else
         None
 
-    - t.add "Clinical trials for cancer" do
+    - t.add "Clin. trials cancer" do
       - selection = good_score.select("Clinical trials for cancer" => 'true').select("Approved for oncology" => 'false')
       - if selection.keys.any?
         - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
@@ -101,9 +94,8 @@
       - else
         None
 
-    - t.add "Approved for other pathologies" do
+    - t.add "Approv. other patho." do
       - selection = good_score.select("Clinical trials for cancer" => 'false').select("Approved for oncology" => 'false').select("status" => 'Approved')
-      - Log.tsv selection
       - if selection.keys.any?
         - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
           = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)
@@ -119,4 +111,6 @@
         None
 
 
+  = resource "Complete #{donor} Pandrugs result.tsv", nil, :link do |filename|
+    - Open.write(filename, PCAWG.pandrugs[donor].read)
 
