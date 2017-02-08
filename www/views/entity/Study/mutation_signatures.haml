@@ -35,7 +35,8 @@
       - d = info[signatures.index(s)] || 0
       - p << {y: d.to_f, x: s}
     - plot_data << {:key => donor, :values => p}
-  = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :y_label => 'Number of donors'
+  - extra = "graph.showLegend(false);"
+  = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :y_label => 'Number of donors', :extra => extra
 
   = table do
     - all_tsv.transpose

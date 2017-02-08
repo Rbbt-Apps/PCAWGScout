@@ -1,0 +1,77 @@
+
+- score = info["score"].first.to_f
+- color = score < 0 ? 'red' : 'green'
+- status, pathology, cancer, extra, extra2 = info.values_at(:status, :pathology, :cancer, :extra, :extra2).collect{|v| v.first || "" }
+
+- approved_for_oncology = false
+- approved_for_this_tumor = false
+- approved_for_other = false
+- clinical_trial_for_cancer = false
+- clinical_trial_for_other = false
+
+- if status == "Approved"
+  - status_str =  if pathology.include? "Oncology"
+    - ["Approved for Oncology", [extra, extra2].reject{|e| e.empty? or e.include? "THERAPY"} * "; "].reject{|e| e.empty?} * ": "
+  - else
+    - if cancer.include? 'cancer'
+      - ["Approved for different pathology (#{pathology}) but in clinical trial for cancer", [extra, extra2].reject{|e| e.empty?}.compact * "; "].reject{|e| e.empty?} * ": "
+    - else
+      - "Approved for different pathology (#{pathology})"
+
+- if status == "Clinical trials"
+  - status_str =  if pathology.include? "Oncology" or cancer.include? "cancer"
+    - ["In clinical trial for cancer", [extra].reject{|e| e.empty?}.compact * "; "].reject{|e| e.empty?} * ": "
+  - else
+    - ["In clinical trial for a different pathology", [pathology].reject{|e| e.empty?} * "; "].reject{|e| e.empty?} * ": "
+
+- if status == "Experimental"
+  - status_str =  if pathology.empty?
+    - "Experimental"
+  - else
+    - "Experimental: #{ pathology }"
+      
+- if status_str.nil? or status_str.empty?
+  - status_str= "Missing: #{[status, pathology, cancer, extra, extra2] * ", "}"
+
+- gene_evidence = {}
+- gene_mi = {}
+- Misc.zip_fields(associations[drug]).each do |affected_gene,gscore,alteration,target_marker,resistance,relation,target_gene,source,mi|
+  - next unless mi
+  - gene_mi[affected_gene] = mi if mi
+  - gene_evidence[[affected_gene, gscore, relation, target_gene]] ||= []
+  - next if alteration == "Deletion" || alteration == "Amplification"
+  - gene_evidence[[affected_gene, gscore, relation, target_gene]] << [source, alteration, target_marker, resistance, alteration]
+
+- if gene_evidence.any?
+
+  .ui.segment
+    .ui.header
+      %span.ui.message(class=color)= drug
+      %span.float.right=score
+
+    .ui.description.basic.segment
+      .ui.text.segment= status_str
+
+      %h3 Evidence
+      - gene_evidence.each do |gi, vs|
+        - affected_gene, gscore, relation, target_gene = gi
+        - mi = gene_mi[affected_gene]
+
+        - sources = {}
+        - vs.each do |v|
+          - source, alteration, target_marker, resistance, alteration = v
+          - sources[[alteration, target_marker, resistance, alteration]] ||= []
+          - sources[[alteration, target_marker, resistance, alteration]] << source
+        .ui.very.basic.segment
+          %span.float.right= gscore
+          %h5  #{affected_gene} (#{mi})
+          .ui.description
+            - if relation == 'INDIRECT'
+              %p Indirect relationship through #{target_gene}
+            %ul
+            - sources.each do |info,sources|
+              - alteration, target_marker, resistance, alteration, mis = info
+              %li
+                #{target_gene} is a #{target_marker == 'target' ? 'target' : ('marker of ' + (resistance || "?")) }, as indicated by #{Misc.humanize_list(sources)}
+            
+

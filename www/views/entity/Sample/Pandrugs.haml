@@ -1,5 +1,4 @@
-
-- donor = entity
+- donor = sample = entity
 
 - action_card = ActionCard.new 
 - action_card.description do
@@ -38,79 +37,81 @@
 
   - PCAWG.pandrugs.produce
 
-  - fields = []
-  - fields << "Drug"
-  - fields << "Affected gene"
-  - fields << "Protein mutation"
-  - fields << "Driver?"
-  - fields << "D score"
-  - fields << "G score"
-  - fields << "Sensitivity / Resistence"
-  - fields << "Drug status"
-  - fields << "Type of therapy"
-  - fields << "Source"
-  - fields << "Relation"
-  - fields << "Target gene"
-  - fields << "Alteration"
-  - fields << "Target or Marker"
+  - assoc_fields = %w(affected_gene gscore alteration target_marker resistance relation gene_symbol source)
+  - associations = PCAWG.pandrugs[sample].tsv :type => :double, :merge => true, :sep2 => '--NONE--', :key_field => 'show_drug_name', :fields => assoc_fields
 
-  - ensp2gn = Organism.identifiers(PCAWG.organism).index :target => "Associated Gene Name", :persist => true
-  - mis = donor.mi(:principal => true)
-  - tsv = TSV.setup({}, :key_field => "ID", :fields => fields, :type => :double, :namespace => PCAWG.organism)
-  - TSV.traverse PCAWG.pandrugs[donor], :header_hash => "", :into => tsv, :type => :list do |gene,values|
-    - max_vscore, branch, entrez_id, path_desc, path_id, gene_symbol, source, show_drug_name, status, pathology, cancer, extra, extra2, pathways, target_marker, resistance, alteration, ind_pathway, relation, ind_gene, score = values
+  - mis = MutatedIsoform.setup(donor.mi, PCAWG.organism)
+  - associations.add_field "Mutated Isoform" do |drug, values|
+    - gene = Gene.setup(values["affected_gene"].first, "Associated Gene Name", PCAWG.organism).ensembl
+    - [mis.select{|mi| mi.protein.gene == gene}.first]
 
-    - next if show_drug_name.nil?
-    - if status == "Approved"
-      - status_str =  if pathology.include? "Oncology"
-        - ["Approved for Oncology", [extra, extra2].reject{|e| e.empty? or e.include? "THERAPY"} * "; "].reject{|e| e.empty?} * ": "
+  - info_fields = %w(score status pathology cancer extra extra2)
+  - drug_info = PCAWG.pandrugs[sample].tsv :type => :double, :merge => true, :sep2 => '--NONE--', :key_field => 'show_drug_name', :fields => info_fields
+
+  - drug_info.add_field "Approved for oncology" do |k, values|
+    - status, pathology, cancer, extra, extra2 = values.values_at(:status, :pathology, :cancer, :extra, :extra2).collect{|v| v.first || "" }
+    - [status == "Approved" && pathology.include?("Oncology")].collect{|v| v.to_s}
+
+  - good_keywords = PCAWG.abbr2pandrugs.tsv[donor.abbr]
+  - drug_info.add_field "Approved for this tumor" do |k, values|
+    - extra = values["extra"] * " | "
+    - [values["Approved for oncology"].first == 'true' && good_keywords.collect{|k| extra.include? k }.any?].collect{|v| v.to_s}
+
+  - drug_info.add_field "Clinical trials" do |k, values|
+    - [values["status"].first == 'Clinical trials'].collect{|v| v.to_s}
+
+  - drug_info.add_field "Clinical trials for cancer" do |k, values|
+    - [values["status"].first == 'Clinical trials' && (values["cancer"].first || "").include?("cancer") || values["status"].first == "Approved" && (values["cancer"].first || "").include?("clinical cancer")].collect{|v| v.to_s}
+
+  - good_score = drug_info.select("score"){|s| s.uniq.first.to_f.abs > 0.5}
+
+  -require 'rbbt/rest/common/tabs'
+  = tabs do |t|
+    - if good_score.select("Approved for this tumor").keys.any?
+      - t.active "Approved for this tumor"
+    - elsif
+      - t.active "Approved for other tumors"
+
+    - t.add "Approved for this tumor" do
+      - selection = good_score.select("Approved for this tumor")
+      - if selection.keys.any?
+        - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
+          = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)
       - else
-        - if cancer.include? 'cancer'
-          - ["Approved for different pathology (#{pathology}) but in clinical trial for cancer", [extra, extra2].reject{|e| e.empty?}.compact * "; "].reject{|e| e.empty?} * ": "
-        - else
-          - "Approved for different pathology (#{pathology})"
+        None
 
-    - if status == "Clinical trials"
-      - status_str =  if pathology.include? "Oncology" or cancer.include? "cancer"
-        - ["In clinical trial for cancer", [extra].reject{|e| e.empty?}.compact * "; "].reject{|e| e.empty?} * ": "
+    - t.add "Approved for other tumors" do
+      - selection = good_score.select("Approved for oncology" => 'true').select("Approved for this tumor" => 'false')
+      - if selection.keys.any?
+        - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
+          = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)
       - else
-        - ["In clinical trial for a different pathology", [pathology].reject{|e| e.empty?} * "; "].reject{|e| e.empty?} * ": "
+        None
 
-    - if status == "Experimental"
-      - status_str =  if pathology.empty?
-        - "Experimental"
+    - t.add "Clinical trials for cancer" do
+      - selection = good_score.select("Clinical trials for cancer" => 'true').select("Approved for oncology" => 'false')
+      - if selection.keys.any?
+        - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
+          = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)
       - else
-        - "Experimental: #{ pathology }"
-          
-    - if status_str.nil? or status_str.empty?
-      - status_str= "Missing: #{[status, pathology, cancer, extra, extra2] * ", "}"
-          
-    - drug = show_drug_name
+        None
 
-    - affected_gene = entrez_id
-    - target_gene = gene_symbol
+    - t.add "Approved for other pathologies" do
+      - selection = good_score.select("Clinical trials for cancer" => 'false').select("Approved for oncology" => 'false').select("status" => 'Approved')
+      - Log.tsv selection
+      - if selection.keys.any?
+        - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
+          = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)
+      - else
+        None
 
-    - mi = mis.select{|mi| ensp2gn[mi.split(":").first] == affected_gene}
-    - next if mi.empty?
-    - id = Misc.digest([drug, affected_gene, target_gene].inspect)
-    - driver = driver_genes.include? affected_gene
-    - [id, [drug, affected_gene, mi, driver, score, max_vscore, resistance, status_str, extra2, source, relation, target_gene, alteration, target_marker]]
+    - t.add "All" do
+      - selection = good_score
+      - if selection.keys.any?
+        - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
+          = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)
+      - else
+        None
 
-  - clean_tsv = tsv.annotate({})
-  - tsv.each do |id,values|
-    - clean_tsv[id] = values.collect{|v| v.flatten.uniq}
 
-  - filtered_tsv = clean_tsv.annotate({})
-  - clean_tsv.each do |id,values|
-    - drug, gene, mi, driver, dscore, gscore,*rest = values
-    - next unless dscore.select{|s| s.to_f.abs > 0.5}.any? or gscore.select{|s| s.to_f.abs > 0.5}.any? or driver.to_s == 'true'
-    - filtered_tsv[id] = values.collect{|v| v.uniq}
-  - header "Affected gene", "Ensembl Gene ID", :organism => PCAWG.organism
-  - header "Protein mutation", "Mutated Isoform"
-  - header "Target gene", "Gene", :format => "Associated Gene Name"
-  = table :row_ids => :consume do 
-    - filtered_tsv
-
-  = resource "Complete #{donor} Pandrugs result.tsv", nil, :link do |filename|
-    - Open.write(filename, clean_tsv.to_s)
 
