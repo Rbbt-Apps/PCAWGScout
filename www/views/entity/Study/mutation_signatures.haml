@@ -39,4 +39,7 @@
   = tool :nvd3, :plot => 'multibar', :plot_data => plot_data, :height => '15em', :width => '100%', :y_label => 'Number of donors', :extra => extra
 
   = table do
-    - all_tsv.transpose
+    - tsv = all_tsv.transpose
+    - tsv.key_field = "Sample"
+    - tsv.entity_options = {:cohort => study}
+    - tsv
