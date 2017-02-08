@@ -28,8 +28,9 @@
     (both in absolute value) or involving a gene predicted driver.
 
     The information in this table is *strictly orientative*. Please check the
-    details presented in the table that qualify these associations to asses if
-    the recomendations are actually relevant.
+    details presented for each drug that qualify these associations (e.g.
+    particular mutations) to asses if the recomendations are actually
+    applicable.
 
 = action_card_render action_card do
   - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :persist => true)
@@ -40,7 +41,7 @@
   - assoc_fields = %w(affected_gene gscore alteration target_marker resistance relation gene_symbol source)
   - associations = PCAWG.pandrugs[sample].tsv :type => :double, :merge => true, :sep2 => '--NONE--', :key_field => 'show_drug_name', :fields => assoc_fields
 
-  - mis = MutatedIsoform.setup(donor.mi, PCAWG.organism)
+  - mis = MutatedIsoform.setup(donor.mi(:principal => true), PCAWG.organism)
   - associations.add_field "Mutated Isoform" do |drug, values|
     - gene = Gene.setup(values["affected_gene"].first, "Associated Gene Name", PCAWG.organism).ensembl
     - [mis.select{|mi| mi.protein.gene == gene}.first]
@@ -52,10 +53,14 @@
     - status, pathology, cancer, extra, extra2 = values.values_at(:status, :pathology, :cancer, :extra, :extra2).collect{|v| v.first || "" }
     - [status == "Approved" && pathology.include?("Oncology")].collect{|v| v.to_s}
 
-  - good_keywords = PCAWG.abbr2pandrugs.tsv[donor.abbr]
+  - good_keywords = PCAWG.abbr2pandrugs.tsv[donor.abbr].flatten
   - drug_info.add_field "Approved for this tumor" do |k, values|
     - extra = values["extra"] * " | "
-    - [values["Approved for oncology"].first == 'true' && good_keywords.collect{|k| extra.include? k }.any?].collect{|v| v.to_s}
+    - extra2 = values["extra2"] * " | "
+    - if values["Approved for oncology"].first == "true"
+      - [good_keywords.select{|k| extra.include?(k) || extra2.include?(k) }.any?].collect{|v| v.to_s}
+    - else
+      - ["false"]
 
   - drug_info.add_field "Clinical trials" do |k, values|
     - [values["status"].first == 'Clinical trials'].collect{|v| v.to_s}
@@ -67,13 +72,13 @@
 
   -require 'rbbt/rest/common/tabs'
   = tabs do |t|
-    - if good_score.select("Approved for this tumor").keys.any?
+    - if good_score.select("Approved for this tumor" => 'true').keys.any?
       - t.active "Approved for this tumor"
     - elsif
       - t.active "Approved for other tumors"
 
     - t.add "Approved for this tumor" do
-      - selection = good_score.select("Approved for this tumor")
+      - selection = good_score.select("Approved for this tumor" => 'true')
       - if selection.keys.any?
         - selection.sort_by{|d,v| -v["score"].uniq.first.to_f.abs}.each do |drug, info|
           = partial_render('partials/pandrug_entry', :drug => drug, :info => info, :associations => associations)

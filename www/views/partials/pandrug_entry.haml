@@ -64,7 +64,7 @@
           - sources[[alteration, target_marker, resistance, alteration]] << source
         .ui.very.basic.segment
           %span.float.right= gscore
-          %h5  #{affected_gene} (#{mi})
+          %h5  #{affected_gene} #{mi ? " - " + mi.link : mi}
           .ui.description
             - if relation == 'INDIRECT'
               %p Indirect relationship through #{target_gene}
