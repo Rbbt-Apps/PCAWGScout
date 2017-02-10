@@ -5,9 +5,16 @@
 - donor_mis = {}
 - donor_CNV = {}
 - ensg2name = Organism.identifiers(PCAWG.organism).index :target => "Associated Gene Name", :persist => true
+
+- log :bootstrap_donor_info
+- Misc.bootstrap study.donors do |donor|
+  - donor = Sample.setup(donor)
+  - donor.affected_genes
+  - donor.all_mi
+
 - study.donors.each do |donor|
   - donor_mis[donor] = {}
-  - donor_mis[donor][:CDS] =  MutatedIsoform.setup(donor.mi(:non_synonymous => true), PCAWG.organism).protein.gene.uniq
+  - donor_mis[donor][:CDS] = donor.affected_genes
   - donor_mis[donor][:UTR3] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR3/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
   - donor_mis[donor][:UTR5] = Transcript.setup(donor.all_mi.select{|mi| mi =~ /UTR5/}.collect{|mi| mi.split(":").first}.uniq, "Ensembl Transcript ID", PCAWG.organism).gene.uniq
   - donor_mis[donor][:promCore] = donor.get_genes("TSS promoter (1000 bp)")
