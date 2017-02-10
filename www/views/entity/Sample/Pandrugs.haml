@@ -34,10 +34,16 @@
   - assoc_fields = %w(affected_gene gscore alteration target_marker resistance relation gene_symbol source)
   - associations = PCAWG.pandrugs[sample].tsv :type => :double, :merge => true, :sep2 => '--NONE--', :key_field => 'show_drug_name', :fields => assoc_fields
 
+  - log :compile, "Compiling drug evidence"
   - mis = MutatedIsoform.setup(donor.mi(:principal => true), PCAWG.organism)
+  - gene_mi = {}
+  - mis.each do |mi|
+    - gene = mi.protein.gene
+    - gene_mi[gene] ||= []
+    - gene_mi[gene] << mi
   - associations.add_field "Mutated Isoform" do |drug, values|
-    - gene = Gene.setup(values["affected_gene"].first, "Associated Gene Name", PCAWG.organism).ensembl
-    - [mis.select{|mi| mi.protein.gene == gene}.first] * values["source"].length
+    - Gene.setup(values["affected_gene"], "Associated Gene Name", PCAWG.organism).ensembl.collect do |gene|
+      - (gene_mi[gene] || []).first
 
   - info_fields = %w(score status pathology cancer extra extra2)
   - drug_info = PCAWG.pandrugs[sample].tsv :type => :double, :merge => true, :sep2 => '--NONE--', :key_field => 'show_drug_name', :fields => info_fields
@@ -64,6 +70,7 @@
   - good_score = drug_info.select("score"){|s| s.uniq.first.to_f.abs > 0.2}
 
   -require 'rbbt/rest/common/tabs'
+  - log :display, "Displaying drug evidence"
   = tabs do |t|
     - if good_score.select("Approved for this tumor" => 'true').keys.any?
       - t.active "Approv. this tumor"

@@ -53,7 +53,7 @@
       .ui.text.segment= status_str
 
       %h3 Evidence
-      - gene_evidence.each do |gi, vs|
+      - gene_evidence.sort_by{|gi,vs| gi[1].to_f}.reverse.each do |gi, vs|
         - affected_gene, gscore, relation, target_gene = gi
         - mi = gene_mi[affected_gene]
 
