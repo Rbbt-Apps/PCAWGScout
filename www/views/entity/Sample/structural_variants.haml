@@ -1,4 +1,4 @@
-
+- require 'rbbt/util/colorize'
 - donor = sample = entity
 - study = PCAWG.all_abbreviations.select do |abbr|
   - abbr = Study.setup(abbr.dup)
@@ -10,12 +10,14 @@
 - action_card.description do 
 
   :markdown
+
     Analysis of structural variants. On each end of the variant genes are
     identified (overlapping a 1000 base wide window).  If gene expression is
     available the color of the gene represents the relative expression of that
     gene in the sample from low expression in green to high expression in red.
     The color is calculated as a linear gradient based on the rank of the RPKM
-    value inside the list of all values for samples in the same cohort (#{study})
+    value inside the list of all values for samples in the same cohort
+    (#{study})
 
 
 = action_card_render action_card do
