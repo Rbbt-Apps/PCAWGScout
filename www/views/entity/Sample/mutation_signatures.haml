@@ -4,15 +4,11 @@
 - action_card.description do
   :markdown
     This action assigns a weight the action of each mutational process in
-    generating the mutations on a sample. The mutational signatures used
-    are those of the Nature 2013 paper (below) and are assigned using the
-    `deconstructSigs` package in R.
+    generating the mutations on a sample. Uses official PCAWG signatures (beta 2)
 
-    `Alexandrov LB, Nik-Zainal S, Wedge DC, et al.: Signatures of mutational
-    processes in human cancer. Nature. 2013; 500(7463): 415:21`
 
 = action_card_render action_card do
   = table :page => "1~-#{donor}" do
-    - tsv = donor.mutation_signature.transpose
+    - tsv = donor.pcawg_mutation_signature.transpose("Signature")
     - tsv.fields = [donor]
     - tsv

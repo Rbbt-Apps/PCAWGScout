@@ -53,11 +53,11 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
     Sample=Sample{
      Pandrugs.haml
      Pandrugs.md
-     Pandrugs.haml.save
+    
      structural_variants.haml
      gene_status.haml
      mutation_signatures.haml
-     mutation_signatures.md
+     mutation_signatures_Nature2013.haml
     }
     StructuralVariant.haml
     Study.haml
@@ -80,6 +80,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
      SV_summary.md
      sample_enrichment.md
      mutation_signatures.haml
+     mutation_signatures_Nature2013.haml
     }
     Protein=Protein{
      needle-plot.haml
