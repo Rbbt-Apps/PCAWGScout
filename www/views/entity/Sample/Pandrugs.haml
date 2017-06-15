@@ -74,7 +74,7 @@
   = tabs do |t|
     - if good_score.select("Approved for this tumor" => 'true').keys.any?
       - t.active "Approv. this tumor"
-    - elsif
+    - else
       - t.active "Approv. other tumors"
 
     - t.add "Approv. this tumor" do
