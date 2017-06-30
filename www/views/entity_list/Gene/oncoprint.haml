@@ -11,10 +11,6 @@
     This is a simple HTML-based implementation of the oncoprint plot provided by Zuguang Gu in
     [ComplexHeatmap](https://bioconductor.org/packages/devel/bioc/vignettes/ComplexHeatmap/inst/doc/s8.oncoprint.html)
 
-    Bar-plots show counts of individual alterations not samples, this means that if a sample has two alterations
-    on the same gene it will be counted twice.
-
-
 = action_card_render action_card do
   - name = " Oncoprint for " + study
   :ruby
@@ -96,7 +92,7 @@
         end
         next unless gene_donor_status.keys.length > 1
 
-        res = donors.collect{|d| (gene_donor_status[d] || []) }
+        res = donors.collect{|d| (gene_donor_status[d] || []).uniq }
 
         [gene, res]
       end
@@ -315,13 +311,13 @@
               - mut_status = "NonCDS" if sample_alts.include?("NonCDS") 
               - mut_status = "Mutated" if sample_alts.include?("Mutated") 
               .main_tile(attr-cnv=cnv_status)
-                - if mut_status == "Mutated"
+                - if sample_alts.include?("Mutated")
                   %i.ui.lightning.icon.green
-                - if mut_status == "NonCDS"
+                - if sample_alts.include?("NonCDS")
                   %i.ui.ban.icon.yellow
-                - if cnv_status == "Gained"
+                - if sample_alts.include?("Gained")
                   %i.ui.chevron.up.icon.red
-                - if cnv_status == "Lost"
+                - if sample_alts.include?("Lost")
                   %i.ui.chevron.down.icon.blue
 
     .right
