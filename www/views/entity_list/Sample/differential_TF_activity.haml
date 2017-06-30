@@ -1,0 +1,114 @@
+- study = list.study
+
+- action_card = ActionCard.new do
+  - if study.matrices.length > 1
+    - input :matrix, :select, "Matrix to use", study.matrices.first, :select_options => study.matrices
+  - else
+    - input :matrix, :string, "Matrix to use", study.matrices.first, :hide => true
+  - input :contrast, :select, "Background list", nil, :select_options => {'none' => 'Rest of samples', 'genotyped' => "Genotyped samples"}, :html_options => {:class => 'favourite_lists', :type => 'Sample'}
+ 
+- action_card.require :matrix
+= action_card_render action_card do
+  - type = matrix
+  - matrix = study.matrix(matrix)
+
+  - case contrast
+  - when nil, 'none'
+    - rest = study.samples - list
+  - when 'genotyped'
+    - rest = study.samples.select_by(:has_genotype?) 
+  - else
+    - rest = Entity::List.load_list("Sample", contrast, user)
+
+  - donor_field = nil
+  - donor_field = study.sample_info.fields.select{|f| f =~ /RNA/i and f =~ /tumou?r/i}.first if donor_field.nil?
+  - donor_field = study.sample_info.fields.select{|f| f =~ /rna_sample/}.first if donor_field.nil?
+  - donor_field = study.sample_info.fields.select{|f| f =~ /specimen/}.first if donor_field.nil?
+  - donor_field = study.sample_info.fields.select{|f| f =~ /donor/}.first if donor_field.nil?
+
+  - list = study.match_samples(list, matrix.samples, donor_field)
+  - rest = study.match_samples(rest, matrix.samples, donor_field) - list
+
+  - Workflow.require_workflow "Viper"
+  - tf_modules = Rbbt.data.FNL_modules.find(:lib)
+  - diffs = Viper.job(:msviper, nil, :main => list, :contrast => rest, :data => matrix.data_file, :modules => tf_modules).run
+  - TmpFile.with_file do |tmp|
+    - diff_exp = matrix.differential(list, rest, tmp)
+    - tsv = TSV.open(tmp).change_key "Associated Gene Name"
+    - Open.write(@step.file('differential'), tsv.to_s)
+
+  = table :class => 'viper', :page => '1~p.value' do
+    - diffs
+
+  :sass
+    .canvas
+      width: 100%
+      min-height: 300px
+      border: 1px solid black
+        
+      .tg
+        width: 10em
+        height: 2em
+        float: left
+
+  .canvas.clearfix
+
+:deferjs
+
+  var targets = #{Rbbt.data.FNL_modules.find(:lib).tsv(:type => :list).to_json }
+  register_dom_update('table.viper td > a', function(link){
+    var button = $('<div>').addClass('ui very small button red float right show').html('View')
+
+
+    button.click(function(e){
+      var button = e.target
+
+      var link = $(button).parent().find(' > a')
+      var tf = link.attr('attr-entity_id')
+      var tgs_signed = targets[tf]
+      tgs_signed.shift()
+
+      var tgs  = []
+      var tg_sign = {}
+
+      for(i in tgs_signed){
+        var tg
+        var sign
+        parts = tgs_signed[i].split("[")
+        tg = parts.shift()
+        sign = parseInt(parts.shift())
+        tgs.push(tg)
+        tg_sign[tg] = sign
+      }
+
+
+      var canvas = $('.canvas')
+      var model = rbbt.graph_model()
+
+      model.set_entities(tgs, 'Gene', {format: "Associated Gene Name", organism: "Hsa/feb2014"})
+      model.add_rule({query: 'differential', field:'t.values', name: 'diff_exp'})
+      model.add_rule({name: 'signed name', info: 'code', extract: function(code){ return code + " (" + tg_sign[code].toString() + ")"} })
+      model.add_aes_rule({name: 'signed name', aes: 'label'})
+      model.add_aes_rule({aes: 'color', name:'diff_exp', mapper: 'sign-gradient'})
+
+      entity_func = function(code, num, aes){
+        return m('div.tg', {"aes-color": aes.color[num]}, aes.label[num])
+      }
+      cont_func = function(model, elem_objs){
+        return m('div', elem_objs["Gene"])
+      }
+
+      register_dom_update('.tg[aes-color]', function(list){
+        list.each(function(i,e){
+          e = $(e)
+          e.css('color', e.attr('aes-color'))
+        })
+      })
+
+      rbbt.plots.graph.view_mithril(model, canvas, cont_func, entity_func)
+      
+
+    })
+
+    $(link).parent().append(button)
+  })

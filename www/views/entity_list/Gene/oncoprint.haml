@@ -1,0 +1,352 @@
+- studies = user_studies[user];
+
+- action_card = ActionCard.new do
+  - input :study, :select, "Study", nil, :select_options => studies
+- action_card.require :study
+
+- action_card.description do
+
+  :markdown
+
+    This is simple HTML-based implementation of the oncoprint plot provided by Zuguang Gu in
+    [ComplexHeatmap]:(https://bioconductor.org/packages/devel/bioc/vignettes/ComplexHeatmap/inst/doc/s8.oncoprint.html)
+
+
+= action_card_render action_card do
+  - name = " Oncoprint for " + study
+  :ruby
+    study = Study.setup(study)
+
+    value_types = %w(Mutated NonCDS Gained Lost)
+    colors = %w(green yellow red blue)
+    color = Hash[*value_types.zip(colors).flatten]
+
+    donors = study.genotyped_samples
+
+    data = Persist.persist(nil, :tsv, :file => Rbbt.tmp.oncoprint, :persist => false) do 
+
+      data = TSV.setup({}, :key_field => "Ensembl Gene ID", :fields => donors, :type => :double, :namespace => PCAWG.organism)
+
+      sg = Study.setup(study).sample_genes
+      fields = sg.fields
+      TSV.traverse sg, :into => data do |gene, values|
+        next unless list.include? gene
+        gene_donors = values.first
+        gene_donor_status = {}
+        fields[1..-1].zip(values[1..-1]).each do |field,value_list|
+          case field
+          when "affected"
+            gene_donors.zip(value_list).each{|donor,b| 
+              next if b == 'false'
+              gene_donor_status[donor] ||= []
+              gene_donor_status[donor] << "Mutated"
+            
+            }
+          #when "CNV status"
+          #  gene_donors.zip(value_list).each{|donor,b| 
+          #    case b
+          #    when 'big_gain'
+          #      gene_donor_status[donor] ||= []
+          #      gene_donor_status[donor] << "AMP"
+          #    when 'loss'
+          #      gene_donor_status[donor] ||= []
+          #      gene_donor_status[donor] << "HOMDEL"
+          #    end
+          #  }
+          end
+        end
+        next unless gene_donor_status.keys.length > 1
+
+        res = donors.collect{|d| (gene_donor_status[d] || []) }
+
+        [gene, res]
+      end
+
+      sg = Study.setup(study).sample_gene_extra
+      fields = sg.fields
+      non_cds_fields = %w(gc19_pc.5utr.bed gc19_pc.3utr.bed gc19_pc.promDomain.bed gc19_pc.promCore.bed)
+      TSV.traverse sg, :into => data do |gene, values|
+        next unless list.include? gene
+        gene_donors = values.first
+        gene_donor_status = {}
+        fields[1..-1].zip(values[1..-1]).each do |field,value_list|
+          case 
+          when non_cds_fields.include?(field)
+            gene_donors.zip(value_list).each{|donor,b| 
+              next if b == 'false'
+              gene_donor_status[donor] ||= []
+              gene_donor_status[donor] << "NonCDS"
+            }
+          when (field == "Focal GISTIC Lost")
+            gene_donors.zip(value_list).each{|donor,b| 
+              next if b == 'false'
+              gene_donor_status[donor] ||= []
+              gene_donor_status[donor] << "Lost"
+            }
+          when "Focal GISTIC Gained"
+            gene_donors.zip(value_list).each{|donor,b| 
+              next if b == 'false'
+              gene_donor_status[donor] ||= []
+              gene_donor_status[donor] << "Gained"
+            }
+          end
+        end
+        next unless gene_donor_status.keys.length > 1
+
+        res = donors.collect{|d| (gene_donor_status[d] || []) }
+
+        [gene, res]
+      end
+
+      data
+    end
+
+    if data.length == 0
+      raise ParameterException, "No genes in the list were affected in this cohort"
+    end
+
+    samples = data.fields
+    data_by_sample = data.transpose
+
+  :ruby
+    #{{{ SIZES
+
+    top_height = 200
+    max_alterations = data_by_sample.values.collect{|vs| vs.inject(0){|acc,v| acc += v.length} }.max
+    histo_box_height = top_height / max_alterations
+    histo_box_height = 4 if histo_box_height < 4
+    histo_box_height = 30 if histo_box_height > 30
+    top_height = histo_box_height * max_alterations
+
+    histo_num_tics = max_alterations / 10
+    histo_num_tics = 3 if histo_num_tics < 3
+    histo_num_tics = 10 if histo_num_tics > 10
+    histo_step = max_alterations / histo_num_tics
+ 
+    main_height = 500
+    tile_box_height = main_height / list.length
+    tile_box_height = 20 if tile_box_height < 20
+    tile_box_height = 50 if tile_box_height > 50
+
+    main_height = tile_box_height * list.length
+
+    gene_plot_width = 150
+    max_gene_alterations = data.values.collect{|vs| vs.inject(0){|acc,v| acc += v.length} }.max
+    gene_histo_box_width = gene_plot_width / max_alterations
+    gene_histo_box_width = 3 if gene_histo_box_width < 3
+    gene_histo_box_width = 8 if gene_histo_box_width > 8
+    gene_plot_width = gene_histo_box_width * max_gene_alterations
+
+    #{{{ ORDER
+
+    gene_order = data.sort_by{|v| v.flatten.length}.collect{|g,v| g }.reverse
+    sample_order = []
+    gene_order.each do |gene|
+      samples.zip(data[gene]).each do |sample, values|
+        sample_order << sample if values.any?
+      end
+    end
+    sample_order.concat samples
+    sample_order.uniq!
+
+  //{{{ SASS
+
+  :sass
+    // Main sizes
+    .oncoprint-canvas
+      .top-slice
+        height: #{top_height}px
+        margin-bottom: 5px
+      //.main-slice
+        height: #{main_height}px
+      .left
+        width: 4em
+        float: left
+        height: 100%
+      .center
+        width: calc(100% - 4em - 6em - #{gene_plot_width}px - 5px - 10px)
+        float: left
+        height: 100%
+      .right
+        width: calc(6em + #{gene_plot_width}px)
+        margin-left: 5px
+        float: right
+        height: 100%
+
+      // Gene Name column
+      .gene_names
+        width: 6em
+        height: 100%
+        float: left
+        .gene_name
+          padding-left: 2px
+          text-overflow: ellipsis
+          overflow: auto
+          width: 100%
+          height: #{tile_box_height}px
+          line-height: #{tile_box_height}px
+          vertical-align: center
+
+      // Gene Alteration histogram
+      .gene_alterations
+        width: #{gene_plot_width}px
+        height: 100%
+        float: left
+        .gene_histo_row
+          display: flex
+          .gene_histo_tile
+            box-shadow: inset 0 0 1px 
+            height: #{tile_box_height}px
+            width: #{gene_histo_box_width}px
+            &[attr-type=Mutated]
+              background-color: #{color["Mutated"]}
+            &[attr-type=Gained]
+              background-color: #{color["Gained"]}
+            &[attr-type=Lost]
+              background-color: #{color["Lost"]}
+            &[attr-type=NonCDS]
+              background-color: #{color["NonCDS"]}
+
+      // Top Histogram
+      .left
+        .histo_tick
+          line-height: #{histo_box_height}px
+          height: #{histo_box_height}px
+          text-align: right
+          padding-right: 2px
+          padding-top: #{-histo_box_height/2 - 1}px
+      .center
+        overflow: auto
+        margin: 0 5px
+        .top-slice, .main-slice
+          min-width: #{samples.length * 2}em
+        .top-slice
+          display: flex
+          .histo_box
+            width: calc(100% / #{samples.length})
+            align-self: baseline
+            .histo_tile
+              box-shadow: inset 0 0 1px rgba(0,0,0,0.3)
+              height: #{histo_box_height}px
+              width: 100%
+              &[attr-type=Mutated]
+                background-color: #{color["Mutated"]}
+              &[attr-type=Gained]
+                background-color: #{color["Gained"]}
+              &[attr-type=Lost]
+                background-color: #{color["Lost"]}
+              &[attr-type=NonCDS]
+                background-color: #{color["NonCDS"]}
+        
+      // Main tiles
+      .left
+        .gene_percent
+          width: 100%
+          height: #{tile_box_height}px
+          line-height: #{tile_box_height}px
+          font-size: #{[tile_box_height, 20].min * 0.8}px
+          text-align: right
+          padding-right: 2px
+
+      .main-slice
+        .gene_row
+          font-size: 0.8em
+          i
+            margin: 0
+            width: 1em
+          width: 100%
+          height: #{tile_box_height}px
+          display: flex
+          .main_tile
+            white-space: nowrap
+            box-shadow: inset 0 0 1px 
+            width: calc(100% / #{samples.length})
+            line-height: #{tile_box_height}px
+            vertical-align: center
+            text-align: center
+            flex: flex-grow
+      .right
+        .top-slice
+          display: flex
+          flex-direction: column-reverse
+
+  //{{{ HTML
+
+  .oncoprint-canvas.clearfix
+    .left
+      .top-slice
+        - max_alterations.times do |i|
+          - p = max_alterations - i 
+          .histo_tick
+            - if p % histo_step == 0
+              = p
+              \-
+            \|
+
+      .main-slice
+        - gene_order.each do |gene|
+          - prop = data[gene].select{|vs| vs.any?}.length.to_f / samples.length
+          - percent = (prop * 1000).to_i.to_f / 10
+          .gene_percent
+            = "%g %" % percent
+            
+    .center
+      .top-slice
+        - sample_order.each do |sample|
+          - items = Misc.counts(data_by_sample[sample].flatten)
+          .histo_box
+            - value_types.reverse.each do |vt|
+              - counts = items[vt] || 0
+              - counts.times do 
+                .histo_tile(attr-type=vt title=sample)
+
+      .main-slice
+        - gene_order.each do |gene|
+          - gene_data = data[gene]
+          .gene_row
+            - sample_order.each do |sample|
+              - sample_alts = gene_data[sample]
+              - cnv_status, mut_status = ["None", "None"]
+              - cnv_status = "Gained" if sample_alts.include?("Gained") 
+              - cnv_status = "Lost" if sample_alts.include?("Lost") 
+              - mut_status = "NonCDS" if sample_alts.include?("NonCDS") 
+              - mut_status = "Mutated" if sample_alts.include?("Mutated") 
+              .main_tile(attr-cnv=cnv_status)
+                - if mut_status == "Mutated"
+                  %i.ui.lightning.icon.green
+                - if mut_status == "NonCDS"
+                  %i.ui.ban.icon.yellow
+                - if cnv_status == "Gained"
+                  %i.ui.chevron.up.icon.red
+                - if cnv_status == "Lost"
+                  %i.ui.chevron.down.icon.blue
+
+    .right
+      .top-slice
+        .leyend
+          %i.ui.chevron.down.icon.blue
+          Focal Copy Number Loss
+        .leyend
+          %i.ui.chevron.up.icon.red
+          Focal Copy Number Gain
+        .leyend
+          %i.ui.ban.icon.yellow
+          Non-Coding mutation
+        .leyend
+          %i.ui.lightning.icon.green
+          Mutation
+        
+      .main-slice
+        .gene_names
+          - gene_order.each do |gene|
+            .gene_name= gene.link
+
+        .gene_alterations
+          - gene_order.each do |gene|
+            - items = Misc.counts(data[gene].flatten)
+            .gene_histo_row
+              - value_types.each do |vt|
+                - counts = items[vt] || 0
+                - counts.times do 
+                  .gene_histo_tile(attr-type=vt)
+    

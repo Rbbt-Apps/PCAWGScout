@@ -90,6 +90,8 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
    entity_list=entity_list{
     Gene=Gene{
      mutation_plot.haml
+     oncoprint.haml
+     oncoprint_alt.haml
      cards.check
      network.check
      tiles.check
@@ -97,6 +99,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
     Sample=Sample{
      characteristic_alterations.haml
      differential_expression.haml
+     differential_TF_activity.haml
      survival.haml
      extended_sample_info.check
     }

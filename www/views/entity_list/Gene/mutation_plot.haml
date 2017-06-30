@@ -5,7 +5,7 @@
 
   - tsv = TSV.setup({}, :key_field => "Ensembl Gene ID",
     :fields => ["PCAWG mutations", "Mutations / Protein size", "Mean mut. distance", "Recurrent %", "Hotspot statistic", "Avg. damage score", "Bg. Avg. damage score", "Damage t-test p-value"], 
-    :type => :list, :cast => :to_f,:namespace => list.organism, )
+    :type => :list, :cast => :to_f, :namespace => PCAWG.organism )
 
   - TSV.traverse list.sort_by{|gene| gene.name || ""}.ensembl.compact, :type => :array, :bar => @step.progress_bar("Processing genes") do |gene|
     - log gene.name
