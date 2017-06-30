@@ -11,6 +11,9 @@
     This is a simple HTML-based implementation of the oncoprint plot provided by Zuguang Gu in
     [ComplexHeatmap](https://bioconductor.org/packages/devel/bioc/vignettes/ComplexHeatmap/inst/doc/s8.oncoprint.html)
 
+    Bar-plots show counts of individual alterations not samples, this means that if a sample has two alterations
+    on the same gene it will be counted twice.
+
 
 = action_card_render action_card do
   - name = " Oncoprint for " + study
@@ -139,7 +142,7 @@
 
     #{{{ ORDER
 
-    gene_order = data.sort_by{|v| v.flatten.length}.collect{|g,v| g }.reverse
+    gene_order = data.sort_by{|g,v| v.reject{|l| l.empty? }.length }.collect{|g,v| g }.reverse
     sample_order = []
     gene_order.each do |gene|
       samples.zip(data[gene]).each do |sample, values|
