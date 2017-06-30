@@ -3,6 +3,8 @@
 = action_card_render action_card do
   - damage_db = PCAWG.gene_damage_analysis.tsv :persist => true
 
+  - Gene.setup(list, "Ensembl Gene ID", PCAWG.organism)
+
   - tsv = TSV.setup({}, :key_field => "Ensembl Gene ID",
     :fields => ["PCAWG mutations", "Mutations / Protein size", "Mean mut. distance", "Recurrent %", "Hotspot statistic", "Avg. damage score", "Bg. Avg. damage score", "Damage t-test p-value"], 
     :type => :list, :cast => :to_f, :namespace => PCAWG.organism )
