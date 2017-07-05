@@ -40,7 +40,8 @@
     var PCAWG = link.parents('.PCAWG').first();
     var protein_tool = PCAWG.parents('.protein_tool').first();
     var svg_element  = protein_tool.find('.svg').first();
-    var jmol_element  = protein_tool.find('.JMol').first();
+    //var jmol_element  = protein_tool.find('.JMol').first();
+    var ngl_element = protein_tool.find('.NGL_viewer').first();
 
     var table = PCAWG.find('table');
     var url = table.attr('attr-url');
@@ -86,7 +87,7 @@
 
         var protein_tool = $('.protein_tool#' + '#{id}');
 
-        rbbt.jmol.color_positions(jmol_element, change_counts);
+        ngl_element.ngl_tool('color_mutation_density', change_counts)
         for (abbr in change_positions_abbr){
           var abbr_key = abbr.toLowerCase().replace(/[^a-zA-Z0-9]/,'.')
           var color = abbr_colors[abbr_key]

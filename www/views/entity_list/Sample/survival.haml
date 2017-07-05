@@ -10,7 +10,7 @@
 
   - survival_field = "donor_survival_time"
   - followup_field = "donor_interval_of_last_followup"
-  - main_field = "time"
+  - main_field = "surv_time"
   - main_event = "donor_vital_status"
 
   - sample_info = study.sample_info.slice [survival_field, followup_field, main_event]
@@ -24,9 +24,13 @@
   - sample_info.add_field main_field do |k,values|
     - v = values[survival_field]
     - v = values[followup_field] if v.nil? or v.empty?
-    - v
+    - v = v.first if Array === v
+    - v.to_f == 0 ? nil : [v]
 
   - pvalue = nil
+  - plot_title = "Kaplan-Meier Curves for\n#{Misc.break_lines(list_id, 80)}"
+
+  - ppp sample_info.to_s
   = resource("Survival plot for #{list_id}.png", nil, :image) do |result_file|
     - TmpFile.with_file do |pvaluefile|
       :ruby
@@ -43,14 +47,15 @@
           main.event = make.names('Event')
 
           surv = Surv(data[[main.field]], data[[main.event]])
+          model = coxph(surv ~ data$In.list)
+          pvalue = summary(coxph(surv ~ data$In.list))$logtest[3]
 
-          rbbt.png_plot('#{result_file}', 600, 600, 'plot(survfit(surv ~ data$In.list), lty = 2:3); \
-                                                          legend(100, .9, c("In list", "Rest"), lty = 3:2);
-                                                          title("Kaplan-Meier Curves\\nfor #{list_id}"); \
-                                                        '\
+          rbbt.png_plot('#{result_file}', 600, 600, \
+              'plot(survfit(surv ~ data$In.list), mark.time=T, lty = 2:3); \
+              legend("topright", legend=c("In list", "Rest"), lty = 3:2); \
+              title("#{plot_title}");'\
           )
 
-          pvalue = summary(coxph(surv ~ data$In.list))$logtest[3]
           cat(pvalue, file='#{pvaluefile}')
           cat(pvalue, file='#{pvaluefile}')
           data = NULL

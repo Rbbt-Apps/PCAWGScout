@@ -3,6 +3,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
   entities
   remote_tasks.save
   requires
+  persist_properties
   workflows
   app.d=app.d{
    post.rb
@@ -38,6 +39,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
    }
    partials=partials{
     driver_incidence.haml
+    candidate_driver_incidence.haml
     pandrug_entry.haml
    }
    tools=tools{

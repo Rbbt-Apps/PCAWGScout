@@ -14,5 +14,6 @@
 = action_card_render action_card do
   = table :page => "1~-#{donor}" do
     - tsv = donor.mutation_signature.transpose("Signature")
+    - tsv.cast = :to_f
     - tsv.fields = [donor]
     - tsv

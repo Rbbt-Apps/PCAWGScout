@@ -5,9 +5,6 @@
 - entity_card.name = study
 - entity_card.long_name = ""
 
-- entity_card.meta do
-  %h1 Meta
-
 - entity_card.add_section "Overview" do
   .ui.stackable.grid
     .row
@@ -78,6 +75,41 @@
     .ui.stackable.grid
       .six.wide.column
         .ui.header
+          Candidate drivers
+        .ui.content
+          - list_container = ListContainer.new
+          - types = %w(CDS 3UTR  5UTR enhancer Promoter)
+          - types.each do |type|
+            - drivers = study.candidate_drivers(type)
+            - list_container.add "#{type} candidate drivers for #{entity}", drivers 
+      
+          = list_container_render(list_container)
+
+      .ten.wide.column
+        = partial_render('partials/candidate_driver_incidence', :study => study)
+    - donors = study.genotyped_samples
+    - study_meta = PCAWG.donor_meta_cohort.tsv.values_at(*donors).compact.flatten.uniq
+    - study_meta.each do |meta_name|
+      - meta = Study.setup("meta=" << meta_name)
+      .ui.stackable.grid
+        .six.wide.column
+          .ui.header
+            Candidate drivers in meta cohort #{meta_name}
+          .ui.content
+            - list_container = ListContainer.new
+            - types = %w(CDS 3UTR  5UTR enhancer Promoter)
+            - types.each do |type|
+              - drivers = meta.candidate_drivers(type)
+              - list_container.add "#{type} candidate drivers for #{meta}", drivers 
+        
+            = list_container_render(list_container)
+
+        .ten.wide.column
+          = partial_render('partials/candidate_driver_incidence', :study => meta, :donors => donors)
+
+    .ui.stackable.grid
+      .six.wide.column
+        .ui.header
           Integrated driver calls (p-value < 0.01)
         .ui.content
           - list_container = ListContainer.new
@@ -111,6 +143,7 @@
 
 - entity_card.add_section "Sample drivers" do
   - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :type => :flat, :fields => ["Associated Gene Name"]).swap_id "Associated Gene Name", "Ensembl Gene ID"
+  - Log.tsv donor_drivers
 
   = graph do |kb|
     - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
