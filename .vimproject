@@ -102,6 +102,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
      characteristic_alterations.haml
      differential_expression.haml
      differential_TF_activity.haml
+     differential_TF_activity.check
      survival.haml
      extended_sample_info.check
     }
