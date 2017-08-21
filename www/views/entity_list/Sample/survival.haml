@@ -30,7 +30,6 @@
   - pvalue = nil
   - plot_title = "Kaplan-Meier Curves for\n#{Misc.break_lines(list_id, 80)}"
 
-  - ppp sample_info.to_s
   = resource("Survival plot for #{list_id}.png", nil, :image) do |result_file|
     - TmpFile.with_file do |pvaluefile|
       :ruby
@@ -50,7 +49,7 @@
           model = coxph(surv ~ data$In.list)
           pvalue = summary(coxph(surv ~ data$In.list))$logtest[3]
 
-          rbbt.png_plot('#{result_file}', 600, 600, \
+          rbbt.png_plot('#{result_file}', width=600, height=600, \
               'plot(survfit(surv ~ data$In.list), mark.time=T, lty = 2:3); \
               legend("topright", legend=c("In list", "Rest"), lty = 3:2); \
               title("#{plot_title}");'\
