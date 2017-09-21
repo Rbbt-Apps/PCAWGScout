@@ -19,7 +19,6 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
    entity=entity{
     structural_variant.rb
    }
-
   }
  }
  www=www{
@@ -28,15 +27,15 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
    main.haml
    main=main{
     cohort_selection.haml
+    cohort_selection.md
     pie.haml
-    plot.haml
-    plot2.haml
-    plot3.haml
     study_card.haml
     study_column.haml
     study_statistics.haml
-    cohort_selection.md
    }
+   layout=layout{
+    footer.haml
+    }
    partials=partials{
     driver_incidence.haml
     candidate_driver_incidence.haml
@@ -69,11 +68,13 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
      gene_list_report.haml
      gene_report.haml
      graph.haml
+     mutation_signatures.haml
+     mutation_signatures_Nature2013.haml
      MutSig.check
      Pandrugs.check
      binomial_significance.check
-     gene_damage_bias.check
      count_tables.check
+     gene_damage_bias.check
      graph.check
      mutation_extended_summary.check
      mutation_list_report.check
@@ -81,8 +82,6 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
      pandrugs.check
      SV_summary.md
      sample_enrichment.md
-     mutation_signatures.haml
-     mutation_signatures_Nature2013.haml
     }
     Protein=Protein{
      needle-plot.haml

@@ -214,7 +214,7 @@
         var gained = aes.gained[code][i]
         var lost = aes.lost[code][i]
         var in_list = in_list_donors[i]
-        tiles.push(m('div.tile', {"attr-mutation": mutation,"attr-lost": lost,"attr-gained": gained, "attr-in_list": in_list}))
+        tiles.push(m('div.tile', {"title": donors[i] , "attr-mutation": mutation,"attr-lost": lost,"attr-gained": gained, "attr-in_list": in_list}))
       }
       return tiles
     }

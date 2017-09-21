@@ -1,0 +1,44 @@
+:sass 
+  #footer
+    transition: all 0.3s
+    &:not(:hover)
+      opacity: 0.1
+      filter: blur(3px) grayscale(100%)
+
+    .content
+      display: block
+    .header, .description
+      span
+        display: block
+
+    .header
+      min-height: 3em
+      span:last-child
+        font-style: italic
+        font-weight: normal
+
+    .description
+      span.group
+        font-style: italic
+
+
+    color: grey
+    .image
+      &:before
+        content: ""
+        display: inline-block
+        height: 100%
+        vertical-align: middle
+      height: 120px
+      width: 100%
+      img
+        width: 100%
+        vertical-align: middle
+      a 
+        width: 100%
+
+.ui.segment.stackable.bottom.attached.grid.two.column
+  .ui.column
+    = partial_render('partials/footers/bsc')
+  .ui.column
+    = partial_render('partials/footers/cnio')

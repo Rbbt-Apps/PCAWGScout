@@ -3,141 +3,302 @@
     display: inline-block
     background-color: #eee
     padding: 0 3px
-:markdown
-  The PCAWG Scout
-  ====
 
-  ##Overview
+  .documentation
+    th, td
+      padding: 5px 10px
+      border: 1px solid #999
+    .vertical.menu
+      .item
+        display: block !important
+    figure
+      max-width: 100vmin
+      img
+        max-width: 100%
+      figcaption
+        font-size: 0.9em
 
-  This application is designed for the integration of data and functionalities.
-  Its design is based on the idea of the `Entity`: anything that can be
-  unambiguously identified, and be subject of investigation. Examples of
-  entities are: genes, proteins, SNPs, samples, pathways, etc.
-
-  Each entity has a report, which depends on the type of entity it is. All
-  reports are computed on the fly and cached. In addition to the main reports,
-  entities have `actions`, which are sub-reports that implement particular
-  analysis. For instance, for gene entities one of the actions is to display a
-  summary of the relevance of that gene across the collection of studies that
-  you have access to. In addition to entities, there are reports for lists of
-  entities and for entity maps, which are tables that relate entities to
-  values, such as genes to their average mutation frequency.
-
-  ##Important definitions
-
-  Its common to think of coding variants as synonymous or non-synonymous. We
-  find that this distinction is slightly inappropriate; a variant might be
-  synonymous and still have a consequence in the protein isoform, for instance
-  variants affecting exon junctions and that might interfere with splicing.
-  Isntead of this nomenclature we prefer to talk about `relevant` and `not
-  relevant` variants. Our current definition of `relevant` are variants that
-  can potentially alter the function of at least one of the isoforms of a gene;
-  this currently includes non-synonymous variants and variants affecting
-  splicing sites (-2 to 8 bases of the donor end and -8 to 3 bases of the
-  acceptor end).
-
-  ##User interface
-
-  The user interface offers a general structure for all reports that allows to
-  enact workflows, explore the results and connect functionalities with one
-  another. This web site is 'responsive', meaning that it adapts to the size of
-  the device you are using: computer, tablet, or phone. On small devices many
-  of the layout elements shift around or get hidden behind toggle buttons to
-  accommodate themselves better to the screen size. The examples below are
-  taken from a computer screen. The site layout and style are under revision so
-  the images might look different, but the functionalities are the same.
-
-=partial_render('help/UI')
+    .column
+      padding-left: 0px !important
+      padding-right: 0px !important
+      .tab
+        margin-top: 0px !important
+        z-index: 1
+      .menu
+        margin-left: 1px
+      &:first-child
+        z-index: 10
 
 
+.documentation.ui.grid
+  .ui.four.wide.column
+    .ui.vertical.fluid.tabular.menu
+      .item.active(data-tab="overview") Overview
+      .item(data-tab="ui") User Interface
+      .item(data-tab="spop") Use Case: Prostate and SPOP
+      .item(data-tab="avail") Availability
 
-:markdown
-  ### How to install your own instance
-  
+  .ui.twelve.wide.stretched.column
+    .ui.tab.segment.active(data-tab='overview')
+      :documentation
 
-  Please refer to the [Getting started with
-  Rbbt](http://mikisvaz.github.io/rbbt/tutorial/getting_started/) for
-  instructions on installing Rbbt on our system.
+        ##Overview
 
-  On a working installation you will need to place 
-  some data files you need access to in any of the directories
-  `/usr/local/share/rbbt/data/projects/PCAWG/.source`,
-  `/usr/share/rbbt/data/projects/PCAWG/.source`,
-  `~/.rbbt/share/data/projects/PCAWG/.source` or
-  somewhere else if you configure the path in `~/.rbbt/etc/search_paths`
+        The PCAWG-Scout takes in the basic data produced by the project, as
+        well as the results from several of it's working groups, and presents
+        it to the user through a collection of diverse reports. These report
+        are centered on entities, or on lists of entities, and are generated
+        on-demand, allowing the user to explore interactively, observing
+        interesting trends and following on then through other analyses.
 
-  These files are:
+        The design is based on the idea of the `Entity`: anything that can be
+        unambiguously identified, and be subject of investigation. Some
+        examples of entities are: genes, proteins, donors, cohorts (AKA
+        studies), and pathways, etc. Each entity has a report, which depends
+        on the type of entity it is. All reports are computed on the fly and
+        cached. In addition to the main reports, entities have `actions`,
+        which are sub-reports that implement particular analysis. For
+        instance, for gene entities one of the actions is to display a summary
+        of driver signals for that gene across the collection of main cohorts.
+        In addition to entities, there are reports for lists of entities, and
+        for entity maps, which are tables that relate entities to values, such
+        as genes to their average mutation frequency on a cohort. Entity lists
+        and maps can also have actions associated.
 
-  * `October_2016_whitelist_2583.snv_mnv_indel.maf.gz`
-  * `autoremoval_final_submission_pkg.tar.gz`
-  * `consensus.20170119.somatic.cna.annotated.tar.gz`
-  * `joint_fpkm_uq.tsv.gz`
-  * `pcawg_consensus_1.6.161116.somatic_svs.tar.gz`
+
+    .ui.tab.segment(data-tab='ui')
+      :documentation
+
+        ##User interface
+
+        The user interface offers a general structure for all reports that allows to
+        enact workflows, explore the results and connect functionalities with one
+        another. This web site is 'responsive', meaning that it adapts to the size of
+        the device you are using: computer, tablet, or phone. On small devices many
+        of the layout elements shift around or get hidden behind toggle buttons to
+        accommodate themselves better to the screen size. The examples below are
+        taken from a computer screen. The site layout and style are under revision so
+        the images might look different, but the functionalities are the same.
+
+      =partial_render('help/UI')
+
+    .ui.tab.segment(data-tab='spop')
+      :documentation
+        ##Prost-AdenoCa and SPOP
+
+        This use case is feature in our
+        [article - Online resources for PCAWG data exploration, visualization, and discovery](http://www.biorxiv.org/content/early/2017/07/14/163907)
+
+        It is well known that structural variants affecting the ERG gene, in
+        particular those that put the gene under a different promoter, are
+        usual drivers in prostate cancer. In this use case we aim at
+        identifying these cases and determining what could be driving the
+        rest.
+
+        ### 1. Visit the cohort page
+
+        Start by selecting the Prost-AdenoCa cohort from the cohort selection
+        page on the main page. Perhaps you would like the make it a favourite
+        by clicking on the start on the top bar.
+
+        ### 2. Examine Strutural Variants
+
+        By loading the report action _SV summary_ you will see a table that
+        lists all potential cases that might be fusing two genes. This table
+        shows each candidate fusion along with the genes involved and the
+        donors that suffer such 'candidate fusions'.
+        
+        The Prost-AdenoCa has gene expression data for several samples, enough
+        to perform the expression analysis. If we sort the table by the field
+        'Best Fisher p-value' we will see the first entry (and the only
+        significant) to be the ERG-TMPRSS2 fusion, the most well know case.
+        Following it is the ERG-SLC45A3, also quite prevalent but which does
+        not involved enough donors for which we have gene-expression to
+        achieve a significant result. We know from literature that the former
+        fusion is functional, and this is reinforced by the gene expression
+        results; we will consider the later fusion as functional as well because of 
+        it's parallelism, despite lacking the same level of evidence.
+
+        ### 3. Take the ERG positive donors
+
+        To further our investigation we will construct a list of donors that contains
+        the ERG positive donors, those that have an ERG- fusion. The simplest way
+        is using the functionalities available on the table itself. 
+        
+        We will do this on two steps: (1) click the _filter_ button and filter
+        the table for entries containing ERG on the column 'Gene 1' and (2)
+        click the _column_ button and then the button _save list_ next to the
+        header 'Fusion donors'. This will create a list of donors and open its report on the
+        model window. Use the link on the top of the modal window to open directly
+        on a browser tab.
+
+        At this point its good to spend some time house-keeping. The list of
+        donors now has a very unintuitive name such as 'List of sample in
+        table 98210'. Let's rename it. Click on the 'hamburger' icon to open
+        the side panel for this report. There you can find the _Edit_ button.
+        Lets use and replace the field 'list_id' by something like 'ERG
+        fusion Prostate donors'. Now lets make that list a favourite by
+        clicking on the start on the top bar; this time it's important.
+
+        ### 4. Take the other donors
+
+        The list of donors that we just created, and made a favourite, are though to have
+        tumors driver primarily by the ERG- fusions. However we set out to find what mechanisms
+        would explain the other donors. To do this we need to form another list of donors, those
+        that don't have the ERG- fusions. 
+
+        First go back to the Prost-AdenoCa cohort report (maybe you can
+        finding it on your favourite Study entities). Now click on the link
+        'Registered donors' or 'Genotyped donors'. This will take us to a
+        donor list report like the one we saw before. What we will do now if
+        remove the ERG positive donors from this list. To do that use the
+        'hamburger' icon to open the side panel and click on _Compare_ button.
+        If you didn't disregard the instructions of making the previous list a
+        favourite, you should see an entry on the modal window with three
+        buttons next to it. Click on the _Remove_ button and you will arrive
+        at your desired list of non ERG- fusion donors. The name of this list
+        is already informative, but lets edit it into a more succinct form:
+        how about 'Non ERG fusion Prostate donors'. Lets also make it a
+        favourite while we are at it.
+
+        ### 5. Check what is special to them
+
+        Now that we have our list of non ERG fusion donors, lets try to find
+        what drives their tumor. Click on the action _Characteristic
+        alterations_. This report will immediately show a few genes that seem
+        to have more prevalence of mutations in this list. One of them is
+        SPOP.
+
+        ### 6. Examine SPOP mutations
+
+        Click on the SPOP link to go the to its report page; make it a
+        favourite. Click on the 'hamburger' icon to open the side bar and
+        select the top most isoform '(SPOP) ENSP00000240327'. You have arrived
+        at the protein report page; make that a favourite as well. 
+
+        Lets open the tab called 'PCAWG' and click the _highlight_ button. Go
+        back to the 'Sequence' tab. You know see that overlying the sequence
+        drawing (that comes from Ensembl) are some vertical lines. There is a
+        cluster or light blue lines around amino-acid residue 133. Guess what?
+        Light-blue is the official color given by the project to
+        Prost-AdenoCa.
+
+        Lets know click on the action called _Protein feature incidence_. We
+        see from the top hits that residue 133 is involved in binding
+        substrates. If we are luck we will find PDB models of interactions of
+        SPOP with different substrates in the 'PDB-viewer' tab. In fact we are
+        luck and we find models of SPOP interacting with CUL3, PTEN, and
+        H2AFY. The PDB with CUL3 does not cover the 133 residue, but the other
+        two do cover it. Let us open the one called 'SPOP-PTEN (28..166)
+        experimental - O43791-P60484-EXP-4o1v.pdb1-A-0-B-0.pdb'. We see the
+        SPOP protein and a fragment of the PTEN protein close to it.
+
+        We can now again click on the _highlight_ button in the 'PCAWG' tab to
+        see the residues colored using a gradient based on the density of
+        mutations. We can see how mutations tend to be in proximity with the
+        interaction interface with the fragment of PTEN, and the 133 in
+        particular in a strong red color.
+        
 
 
-  The SNV and MNV file is considered sensitive; if you don't have access to it
-  you may still run the instance by placing the following text in a file file under
-  `~/.rbbt/etc/remote_workflow_tasks`
+    .ui.tab.segment(data-tab='avail')
+      :documentation
+        ## How to install your own instance
+
+        Please refer to the [Getting started with
+        Rbbt](http://mikisvaz.github.io/rbbt/tutorial/getting_started/) for
+        instructions on installing Rbbt on our system.
+
+        On a working installation you will need to place 
+        some data files you need access to in any of the directories
+        `/usr/local/share/rbbt/data/projects/PCAWG/.source`,
+        `/usr/share/rbbt/data/projects/PCAWG/.source`,
+        `~/.rbbt/share/data/projects/PCAWG/.source` or
+        somewhere else if you configure the path in `~/.rbbt/etc/search_paths`
+
+        These files are:
+
+        * `October_2016_whitelist_2583.snv_mnv_indel.maf.gz`
+        * `autoremoval_final_submission_pkg.tar.gz`
+        * `consensus.20170119.somatic.cna.annotated.tar.gz`
+        * `joint_fpkm_uq.tsv.gz`
+        * `pcawg_consensus_1.6.161116.somatic_svs.tar.gz`
 
 
-  <pre>
-  ---
-  Sample:
-    http://pcawgscout.bioinfo.cnio.es/Sample:
-      - mi
-      - all_mi
-      - gene_mutation_status
-      - missing_genes
-      - compound_mutation_genes
-      - homozygous_genes
-      - num_genomic_mutations
-      - pandrugs
-      - mutation_signature
-  Study:
-    http://pcawgscput.bioinfo.cnio.es/Study:
-      - binomial_significance
-      - mut_sig 
-  </pre>
+        The SNV and MNV file is considered sensitive; if you don't have access to it
+        you may still run the instance by placing the following text in a file file under
+        `~/.rbbt/etc/remote_workflow_tasks`
 
-  You can now install and bootstrap the PCAWG workflow, which means preparing
-  the basic results for all donors and cohorts
 
-  ```
-  env RBBT_WORKFLOW_AUTOINSTALL=true rbbt workflow cmd PCAWG bootstrap
-  ```
+        <pre>
+        ---
+        Sample:
+          http://pcawgscout.bioinfo.cnio.es/Sample:
+            - mi
+            - all_mi
+            - gene_mutation_status
+            - missing_genes
+            - compound_mutation_genes
+            - homozygous_genes
+            - num_genomic_mutations
+            - pandrugs
+            - mutation_signature
+        Study:
+          http://pcawgscput.bioinfo.cnio.es/Study:
+            - binomial_significance
+            - mut_sig 
+        </pre>
 
-  Or you can start this same web interface
+        You can now install and bootstrap the PCAWG workflow, which means preparing
+        the basic results for all donors and cohorts
 
-  ```
-  rbbt app install PCAWGScout && env RBBT_WORKFLOW_AUTOINSTALL=true rbbt app start PCAWGScout -e production --log 2 -p 2887
-  ```
+        ```
+        env RBBT_WORKFLOW_AUTOINSTALL=true rbbt workflow cmd PCAWG bootstrap
+        ```
 
-  Note that bootstrapping the infrastructure can be as lengthy and
-  bootstrapping the PCAWG workflow itself. In particular the DbNSFP workflow
-  used for damage predictions requires building a 200GB database, so we
-  recommend to use it remotely, at least at first
+        Or you can start this same web interface
 
-  ```
-  rbbt workflow remote add DbNSFP http://rbbt.bioinfo.cnio.es/DbNSFP
-  ```
+        ```
+        rbbt app install PCAWGScout && env RBBT_WORKFLOW_AUTOINSTALL=true rbbt app start PCAWGScout -e production --log 2 -p 2887
+        ```
 
-  You may also circumvent plenty of work by configuring one of CNIO servers
-  as a remote file server, which is then queried for files before trying to
-  generate them locally
+        Note that bootstrapping the infrastructure can be as lengthy and
+        bootstrapping the PCAWG workflow itself. In particular the DbNSFP workflow
+        used for damage predictions requires building a 200GB database, so we
+        recommend to use it remotely, at least at first
 
-  ```
-  rbbt file_server add Organism http://rbbt.bioinfo.cnio.es
-  ```
+        ```
+        rbbt workflow remote add DbNSFP http://rbbt.bioinfo.cnio.es/DbNSFP
+        ```
 
-  ```
-  rbbt file_server add InterPro http://rbbt.bioinfo.cnio.es
-  ```
+        You may also circumvent plenty of work by configuring one of CNIO servers
+        as a remote file server, which is then queried for files before trying to
+        generate them locally
 
-  ```
-  rbbt file_server add Genomes1000 http://rbbt.bioinfo.cnio.es
-  ```
+        ```
+        rbbt file_server add Organism http://rbbt.bioinfo.cnio.es
+        ```
 
-  ```
-  rbbt file_server add DbSNP http://rbbt.bioinfo.cnio.es
-  ```
+        ```
+        rbbt file_server add InterPro http://rbbt.bioinfo.cnio.es
+        ```
+
+        ```
+        rbbt file_server add Genomes1000 http://rbbt.bioinfo.cnio.es
+        ```
+
+        ```
+        rbbt file_server add DbSNP http://rbbt.bioinfo.cnio.es
+        ```
+
+        If you can follow these suggestions and get a running instance I would
+        like to meet you! In the more likely event that you need further
+        instruction please contact me (see contact info below)
+
+:sass
+  .documentation
+    text-align: justify
+
+:deferjs
+  $('.menu .item').tab()
 
