@@ -44,14 +44,14 @@
       %dt Genomic Mutations
       %dd= sample.num_genomic_mutations
 
-      - list_container = ListContainer.new
-      - list_container.add "#{donor} mutated principal isoforms", MutatedIsoform.setup(sample.mi(:principal => true), PCAWG.organism)
-      - list_container.add "#{donor} affected genes", sample.get_genes(:affected)
-      - list_container.add "#{donor} damaged genes", sample.get_genes(:damaged)
-      - list_container.add "#{donor} driver genes", driver_genes
+    - list_container = ListContainer.new
+    - list_container.add "#{donor} mutated principal isoforms", MutatedIsoform.setup(sample.mi(:principal => true), PCAWG.organism)
+    - list_container.add "#{donor} affected genes", sample.get_genes(:affected)
+    - list_container.add "#{donor} damaged genes", sample.get_genes(:damaged)
+    - list_container.add "#{donor} driver genes", driver_genes
 
-      
-      = list_container_render(list_container)
+    
+    = list_container_render(list_container)
 
     - header "Gene", "Gene", :format =>  "Ensembl Gene ID"
     = table do

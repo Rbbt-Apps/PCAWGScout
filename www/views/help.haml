@@ -57,13 +57,14 @@
         studies), and pathways, etc. Each entity has a report, which depends
         on the type of entity it is. All reports are computed on the fly and
         cached. In addition to the main reports, entities have `actions`,
-        which are sub-reports that implement particular analysis. For
+        which are sub-reports that implement particular analyses. For
         instance, for gene entities one of the actions is to display a summary
         of driver signals for that gene across the collection of main cohorts.
         In addition to entities, there are reports for lists of entities, and
         for entity maps, which are tables that relate entities to values, such
         as genes to their average mutation frequency on a cohort. Entity lists
-        and maps can also have actions associated.
+        and maps have their own reports, and can also have actions available
+        for them.
 
 
     .ui.tab.segment(data-tab='ui')
@@ -71,14 +72,16 @@
 
         ##User interface
 
-        The user interface offers a general structure for all reports that allows to
-        enact workflows, explore the results and connect functionalities with one
-        another. This web site is 'responsive', meaning that it adapts to the size of
-        the device you are using: computer, tablet, or phone. On small devices many
-        of the layout elements shift around or get hidden behind toggle buttons to
-        accommodate themselves better to the screen size. The examples below are
-        taken from a computer screen. The site layout and style are under revision so
-        the images might look different, but the functionalities are the same.
+        The user interface offers a general structure for all reports that
+        allows to enact workflows, explore the results and connect
+        functionalities with one another. This web site is 'responsive',
+        meaning that it adapts to the size of the device you are using:
+        computer, tablet, or phone. On small devices many of the layout
+        elements shift around or get hidden behind toggle buttons to
+        accommodate themselves better to the screen size. The examples below
+        are taken from a computer screen. The site layout and style are under
+        revision so the images might look different, but the functionalities
+        are more or less the same.
 
       =partial_render('help/UI')
 
@@ -89,7 +92,7 @@
         This use case is feature in our
         [article - Online resources for PCAWG data exploration, visualization, and discovery](http://www.biorxiv.org/content/early/2017/07/14/163907)
 
-        It is well known that structural variants affecting the ERG gene, in
+        It's well known that structural variants affecting the ERG gene, in
         particular those that put the gene under a different promoter, are
         usual drivers in prostate cancer. In this use case we aim at
         identifying these cases and determining what could be driving the
@@ -128,24 +131,25 @@
         We will do this on two steps: (1) click the _filter_ button and filter
         the table for entries containing ERG on the column 'Gene 1' and (2)
         click the _column_ button and then the button _save list_ next to the
-        header 'Fusion donors'. This will create a list of donors and open its report on the
-        model window. Use the link on the top of the modal window to open directly
-        on a browser tab.
+        header 'Fusion donors'. This will create a list of donors and open its
+        report on the model window. Use the link on the top of the modal
+        window to open directly on a browser tab.
 
-        At this point its good to spend some time house-keeping. The list of
+        At this point it's good to spend some time house-keeping. The list of
         donors now has a very unintuitive name such as 'List of sample in
         table 98210'. Let's rename it. Click on the 'hamburger' icon to open
         the side panel for this report. There you can find the _Edit_ button.
-        Lets use and replace the field 'list_id' by something like 'ERG
-        fusion Prostate donors'. Now lets make that list a favourite by
-        clicking on the start on the top bar; this time it's important.
+        Let's use and replace the field 'list_id' by something like 'ERG fusion
+        Prostate donors'. Now let's make that list a favourite by clicking on
+        the start on the top bar; this time it's important.
 
         ### 4. Take the other donors
 
-        The list of donors that we just created, and made a favourite, are though to have
-        tumors driver primarily by the ERG- fusions. However we set out to find what mechanisms
-        would explain the other donors. To do this we need to form another list of donors, those
-        that don't have the ERG- fusions. 
+        The list of donors that we just created, and made a favourite, are
+        though to have tumors driver primarily by the ERG- fusions. However we
+        set out to shed light onto what mechanisms would explain the tumors on
+        the other donors. To do this we need to form another list of donors,
+        those that don't have the ERG- fusions. 
 
         First go back to the Prost-AdenoCa cohort report (maybe you can
         finding it on your favourite Study entities). Now click on the link
@@ -157,13 +161,13 @@
         favourite, you should see an entry on the modal window with three
         buttons next to it. Click on the _Remove_ button and you will arrive
         at your desired list of non ERG- fusion donors. The name of this list
-        is already informative, but lets edit it into a more succinct form:
-        how about 'Non ERG fusion Prostate donors'. Lets also make it a
-        favourite while we are at it.
+        is already informative, but let's edit it into a more succinct form:
+        'Non ERG fusion Prostate donors'. Let's also make it a favourite while
+        we are at it.
 
         ### 5. Check what is special to them
 
-        Now that we have our list of non ERG fusion donors, lets try to find
+        Now that we have our list of non ERG fusion donors, let's try to find
         what drives their tumor. Click on the action _Characteristic
         alterations_. This report will immediately show a few genes that seem
         to have more prevalence of mutations in this list. One of them is
@@ -176,18 +180,18 @@
         select the top most isoform '(SPOP) ENSP00000240327'. You have arrived
         at the protein report page; make that a favourite as well. 
 
-        Lets open the tab called 'PCAWG' and click the _highlight_ button. Go
+        Let's open the tab called 'PCAWG' and click the _highlight_ button. Go
         back to the 'Sequence' tab. You know see that overlying the sequence
         drawing (that comes from Ensembl) are some vertical lines. There is a
         cluster or light blue lines around amino-acid residue 133. Guess what?
         Light-blue is the official color given by the project to
         Prost-AdenoCa.
 
-        Lets know click on the action called _Protein feature incidence_. We
+        Let's know click on the action called _Protein feature incidence_. We
         see from the top hits that residue 133 is involved in binding
         substrates. If we are luck we will find PDB models of interactions of
         SPOP with different substrates in the 'PDB-viewer' tab. In fact we are
-        luck and we find models of SPOP interacting with CUL3, PTEN, and
+        in luck and we find models of SPOP interacting with CUL3, PTEN, and
         H2AFY. The PDB with CUL3 does not cover the 133 residue, but the other
         two do cover it. Let us open the one called 'SPOP-PTEN (28..166)
         experimental - O43791-P60484-EXP-4o1v.pdb1-A-0-B-0.pdb'. We see the
