@@ -40,6 +40,7 @@
 
 
   - if sample.num_genomic_mutations > 0
+
     %dl
       %dt Genomic Mutations
       %dd= sample.num_genomic_mutations
@@ -55,11 +56,16 @@
 
     - header "Gene", "Gene", :format =>  "Ensembl Gene ID"
     = table do
-      - tsv = TSV.setup({}, :key_field => 'Gene', :fields => ["Mutated Isoform"], :type => :flat, :namespace => PCAWG.organism)
+      - tsv = TSV.setup({}, :key_field => 'Ensembl Gene ID', :fields => ["Mutated Isoform"], :type => :flat, :namespace => PCAWG.organism)
       - MutatedIsoform.setup(sample.mi(:principal => true), PCAWG.organism).each do |mi|
         - gene = mi.protein.gene
         - tsv[gene] ||= []
         - tsv[gene] << mi
+
+      - tsv = tsv.to_double
+      - tsv.attach sample.gene_timing.to_double
+      - tsv.add_field "Driver" do |gene,timing|
+        - driver_genes.include? gene
       - tsv
     
 - entity_card.action_controller = default_action_controller sample

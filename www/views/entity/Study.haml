@@ -100,7 +100,7 @@
             - types = %w(CDS 3UTR  5UTR enhancer Promoter)
             - types.each do |type|
               - drivers = meta.candidate_drivers(type)
-              - list_container.add "#{type} candidate drivers for #{meta}", drivers 
+              - list_container.add "#{type} candidate drivers for #{meta} in #{entity}", drivers 
         
             = list_container_render(list_container)
 
@@ -146,6 +146,7 @@
   - Log.tsv donor_drivers
 
   = graph do |kb|
+    - kb.entity_options = {"Sample" => {:cohort => study}}
     - kb.register "donor_drivers", PCAWG.donor_drivers, :target => "Associated Gene Name=>Ensembl Gene ID"
     - assocs = kb.subset("donor_drivers", :source => study.donors, :target => :all)
     - add_associations assocs

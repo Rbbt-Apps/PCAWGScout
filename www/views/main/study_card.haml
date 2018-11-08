@@ -8,5 +8,8 @@
 - background_style = 'background-color:' + color
 - border_style = 'border: 2px solid ' + Color.new(color).darken(0.2).to_s
 .ui.one.wide.mobile.center.aligned.four.wide.column(style="#{background_style + "; " + border_style}")
-  = study.link text
+  - samples = study.genotyped_samples
+  - expression_samples = study.expression_samples
+  - title = text + " - G: " + samples.length.to_s + " E: " + expression_samples.length.to_s
+  = study.link text, :title => title
   = study_nh.link "NH"
