@@ -228,7 +228,7 @@
     graph_model.entities["Gene"].aes.lost = incidence_lost
     graph_model.entities["Gene"].aes.gained = incidence_gained
     graph_model.entities["Gene"].aes.pvalues = gene_pvalues
-    graph_model.entities["Gene"].aes.link = link
+    graph_model.entities["Gene"].aes.link = mapArray(link, function(l,i){ return rbbt.link_add_script_name(l)})
 
     graph_model.rules = []
 

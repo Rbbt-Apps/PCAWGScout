@@ -23,6 +23,7 @@
         %dl
           - types = %w(CDS 3UTR  5UTR promCore)
           - types.each do |type|
+            - next if study.drivers(type).nil?
             - overlap = genes & study.drivers(type)
             - genes.annotate overlap
             - next if overlap.empty?

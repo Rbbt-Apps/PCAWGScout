@@ -6,8 +6,8 @@
   - else
     - input :matrix, :string, "Matrix to use", study.matrices.first, :hide => true
   - input :contrast, :select, "Background list", nil, :select_options => {'none' => 'Rest of samples', 'genotyped' => "Genotyped samples"}, :html_options => {:class => 'favourite_lists', :type => 'Sample'}
-  - input :threshold, :float, "Significance threshold for (non-adjusted) p-value", 0.1
-  - input :database, :select, "Perform enrichment analysis on deregulated genes", :none, :select_options => [:none] + Enrichment::DATABASES 
+  - input :threshold, :float, "Significance threshold for (non-adjusted) p-value", 0.00001
+  - input :database, :select, "Perform enrichment analysis on deregulated genes", "go_bp", :select_options => [:none] + Enrichment::DATABASES 
 
  
 - action_card.require :threshold
