@@ -5,7 +5,6 @@
 - study_donors =  study.donors
 - study_donors = donors if defined? donors
 
-- log :bootstrap_donor_info
 - Misc.bootstrap study_donors do |donor|
   - donor = Sample.setup(donor)
   - donor.affected_genes

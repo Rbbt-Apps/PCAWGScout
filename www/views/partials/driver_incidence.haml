@@ -6,7 +6,6 @@
 - donor_CNV = {}
 - ensg2name = Organism.identifiers(PCAWG.organism).index :target => "Associated Gene Name", :persist => true
 
-- log :bootstrap_donor_info
 - Misc.bootstrap study.donors do |donor|
   - donor = Sample.setup(donor)
   - donor.affected_genes

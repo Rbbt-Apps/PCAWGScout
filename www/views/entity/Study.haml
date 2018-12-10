@@ -144,7 +144,6 @@
 
 - entity_card.add_section "Sample drivers" do
   - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :type => :flat, :fields => ["Associated Gene Name"]).swap_id "Associated Gene Name", "Ensembl Gene ID"
-  - Log.tsv donor_drivers
 
   = graph do |kb|
     - kb.entity_options = {"Sample" => {:cohort => study}}
