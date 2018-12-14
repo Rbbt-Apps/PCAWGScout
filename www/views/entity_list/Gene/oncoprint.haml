@@ -15,6 +15,7 @@
   - name = " Oncoprint for " + study
   :ruby
     study = Study.setup(study)
+    list = list.to :ensembl
 
     value_types = %w(Mutated NonCDS Gained Lost)
     colors = %w(green yellow red blue)
