@@ -169,6 +169,13 @@
 
   #tile_plot
 
+  :markdown
+
+    \* Asterisks next the gene names reflect the level of statistical significance according to a one-sided Fisher exact test; hover over it to see the actual value. No correction for multiple hypothesis testing is performed.
+
+  = table do
+    - TSV.setup incidence_affected, :key_field => "Associated Gene Name", :fields => donors, :organism => PCAWG.organism
+
   :deferjs
      
     var donors = #{donors.to_json}

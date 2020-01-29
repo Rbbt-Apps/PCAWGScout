@@ -14,4 +14,9 @@ itself. The scoring system takes into account several sources of evidence that
 could indicate that the mutation has clinical significance or that it is a
 potential driver, as well as the predicted role of the gene  in that tumor type
 (tumor suppressor or oncogene). For more details please refer to  the [Pandrugs
-database](http://pandrugs.bioinfo.cnio.es/). There is an upcoming publication.
+database](http://pandrugs.org/). 
+
+
+Citing this tool: E. Piñeiro-Yáñez et al. (2018) PanDrugs: a novel method to
+prioritize anticancer drug treatments according to individual genomic data.
+Genome Medicine. Volume 10:41. ISSN: 1756-994X. 

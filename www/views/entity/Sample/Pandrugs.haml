@@ -5,10 +5,10 @@
 
   :markdown
 
-    This results are derived from the [Pandrugs
-    database](http://pandrugs.bioinfo.cnio.es/).  Please consult their website
-    for more documentation.  They have been precomputed using the original VCF
-    files provided by PCAWG. 
+    These results are derived from the [Pandrugs
+    database](http://pandrugs.org/). Please consult their website for more
+    documentation. They have been precomputed using the original VCF files
+    provided by PCAWG. 
 
     The associations presented here can be for drugs approved by the FDA, in
     clinical trials, and experimental. For direct drug-targer relationships or
@@ -20,10 +20,15 @@
     for relevance. Currently these analysis does not consider CNVs, but a new
     version is in process.
 
-    The information in this table is *strictly orientative*. Please check the
-    details presented for each drug that qualify these associations (e.g.
-    particular mutations) to asses if the recomendations are actually
-    applicable.
+    ### Important notices
+
+    The information in this report is not intended for clinical use, it is only
+    included for scientific and educational purposes. 
+
+    Please consider these two messages from the Pandrugs team:
+
+    * Disclaimer: this resource is intended for research purposes exclusively. It should not be used for medical or professional advice.
+    * Please cite us: E. Piñeiro-Yáñez et al. (2018) PanDrugs: a novel method to prioritize anticancer drug treatments according to individual genomic data. Genome Medicine. Volume 10:41. ISSN: 1756-994X. 
 
 = action_card_render action_card do
   - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :persist => true)
