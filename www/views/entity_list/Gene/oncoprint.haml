@@ -121,8 +121,8 @@
     histo_num_tics = max_alterations / 10
     histo_num_tics = 3 if histo_num_tics < 3
     histo_num_tics = 10 if histo_num_tics > 10
-    histo_step = max_alterations / histo_num_tics
- 
+    histo_step = (max_alterations.to_f / histo_num_tics).ceil
+
     main_height = 500
     tile_box_height = main_height / list.length
     tile_box_height = 20 if tile_box_height < 20

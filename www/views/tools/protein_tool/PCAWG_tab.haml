@@ -60,11 +60,13 @@
         var change_positions_abbr = {};
         var change_counts = {}
 
+
         forHash(data, function(change, values){
-          var samples = values[0];
-          var abbrs = values[3];
-          var m;
           if (m = change.match(/[A-Z](\d+)[A-Z]/)){
+            var samples = values[0];
+            var abbrs = values[3];
+            var m;
+
             var pos = parseInt(m[1])
             for (var i = 0; i < abbrs.length; i++){
               var abbr = abbrs[i];
@@ -84,13 +86,13 @@
           }
         })
 
+
         var protein_tool = $('.protein_tool#' + '#{id}');
 
         ngl_element.ngl_tool('color_mutation_density', change_counts)
         for (abbr in change_positions_abbr){
           var abbr_key = abbr.toLowerCase().replace(/[^a-zA-Z0-9]/,'.')
           var color = abbr_colors[abbr_key]
-          console.log([abbr, color])
           rbbt.svg.mark_positions(svg_element, change_positions_abbr[abbr], color);
         }
 
