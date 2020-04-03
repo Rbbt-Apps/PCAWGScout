@@ -237,20 +237,28 @@
         <pre>
         ---
         Sample:
-          http://pcawgscout.bioinfo.cnio.es/Sample:
+          http://rbbt.bsc.es/Sample/Sample:
+            - num_genomic_mutations
             - mi
             - all_mi
-            - gene_mutation_status
-            - missing_genes
             - compound_mutation_genes
             - homozygous_genes
-            - num_genomic_mutations
+            - missing_genes
+            - gene_mutation_status
+            - gene_extra_status
             - pandrugs
-            - mutation_signature
+            - context_change_count
+            - gene_timing
         Study:
-          http://pcawgscput.bioinfo.cnio.es/Study:
+          http://rbbt.bsc.es/Study/Study:
             - binomial_significance
-            - mut_sig 
+            - sample_enrichment
+        DbNSFP:
+          http://rbbt.bsc.es/DbNSFP:
+            - score
+            - annotate
+            - predict
+            - possible_mutations
         </pre>
 
         You can now install and bootstrap the PCAWG workflow, which means preparing
@@ -275,7 +283,7 @@
         rbbt workflow remote add DbNSFP http://rbbt.bioinfo.cnio.es/DbNSFP
         ```
 
-        You may also circumvent plenty of work by configuring one of CNIO servers
+        You may also circumvent plenty of work by configuring one of BSC servers
         as a remote file server, which is then queried for files before trying to
         generate them locally
 
@@ -294,6 +302,17 @@
         ```
         rbbt file_server add DbSNP http://rbbt.bioinfo.cnio.es
         ```
+
+        Alternatively you can just instruct it to query just any file
+
+        ```
+        rbbt file_server add '*' http://rbbt.bioinfo.cnio.es
+        ```
+
+        Note that some of these datasets might have legal constraints.
+        So if you plan to use this commercially please deactivate file_servers
+        and download everything from source, though this will likely mean
+        fixing outdated references.
 
         If you can follow these suggestions and get a running instance I would
         like to meet you! In the more likely event that you need further
