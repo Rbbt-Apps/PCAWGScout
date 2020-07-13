@@ -87,7 +87,7 @@
 
       .ten.wide.column
         = partial_render('partials/candidate_driver_incidence', :study => study)
-
+  
     - donors = study.genotyped_samples
     - study_meta = PCAWG.donor_meta_cohort.tsv.values_at(*donors).compact.flatten.uniq
     - study_meta.each do |meta_name|

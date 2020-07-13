@@ -1,0 +1,17 @@
+Sample:
+  http://bscpcawgscout02/Sample/Sample:
+    - num_genomic_mutations
+    - mi
+    - all_mi
+    - compound_mutation_genes
+    - homozygous_genes
+    - missing_genes
+    - gene_mutation_status
+    - gene_extra_status
+    - pandrugs
+    - context_change_count
+    - gene_timing
+Study:
+  http://bscpcawgscout02/Study/Study:
+    - binomial_significance
+    - sample_enrichment

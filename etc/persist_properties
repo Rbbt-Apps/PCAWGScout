@@ -1,5 +1,8 @@
 Sample:
   - get_genes, annotations
   - gene_extra_status, tsv
+  - gene_mutation_status, tsv
   - num_genomic_mutations, integer
   - all_mi, array
+  - affected_genes, array
+  - missing_genes, array
