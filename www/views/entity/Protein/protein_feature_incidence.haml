@@ -5,10 +5,12 @@
 - gene = protein.gene
 - sequence_length = protein.sequence.length.to_f
 
-- incidence = Study.setup("PCAWG").mi_incidence(:job).produce.path.tsv :grep => protein, :type => :double
+-# incidence = Study.setup("PCAWG").mi_incidence(:job).produce.path.tsv :grep => protein, :type => :double
+- incidence = Study.setup("PCAWG").mi_incidence
 
 - mutation_isoform_info = incidence
 - mutation_isoform_info.add_field "Change" do |k,v|
+  - next unless k.include?(protein)
   - k.split(":").last.scan(/\d+/)[0]
 
 - databases = Structure::ANNOTATORS.keys

@@ -6,3 +6,5 @@ Sample:
   - all_mi, array
   - affected_genes, array
   - missing_genes, array
+Study:
+  - mi_incidence, tsv
