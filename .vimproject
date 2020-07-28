@@ -18,6 +18,7 @@ PCAWGScout=/$PWD filter="*.rb *.haml *.js *.sass *.css *.R *.ru *.check *.md" {
   rbbt=rbbt{
    entity=entity{
     structural_variant.rb
+    study.rb
    }
   }
  }

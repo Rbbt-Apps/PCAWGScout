@@ -1,4 +1,4 @@
-.highlight.submit.ui.button Highlight
+.highlight.submit.ui.button.disabled Highlight
 -#.ui.message
   In JMol positions with 1 mutation are white, with 2 are green, with 3 are orange, and with more than 3 are red
 -#%select(name='color')
@@ -6,12 +6,13 @@
     %option(value=c)= c
 
 
-- donor_changes = TSV.setup({}, :key_field => PCAWG::DONOR_FIELD, :fields => ["Change"], :type => :flat, :namespace => PCAWG.organism)
-
 - gene = protein.gene
+
+-# donor_changes = TSV.setup({}, :key_field => PCAWG::DONOR_FIELD, :fields => ["Change"], :type => :flat, :namespace => PCAWG.organism)
+
 -# incidence = Study.setup("PCAWG").mi_incidence(:job).produce.path.tsv :grep => protein
-- incidence = Study.setup("PCAWG").mi_incidence
-- incidence.each do |mi,donors|
+-# incidence = Study.setup("PCAWG").mi_incidence
+-# incidence.each do |mi,donors|
   - next unless mi =~ /ENSP/
   - p, change = mi.split(":")
   - next unless p == protein
@@ -23,6 +24,8 @@
 -# PCAWG.all_donors.each do |donor|
   - donor = Sample.setup(donor.dup, :cohort => "PCAWG")
   - donor_changes[donor] = donor.mi.select{|mi| mi.include? protein}.collect{|mi| change = mi.split(":").last} 
+
+- donor_changes = Study.setup("PCAWG").donor_protein_changes(protein)
 
 - tsv = donor_changes.to_double.reorder "Change", [PCAWG::DONOR_FIELD], :merge => true
 
@@ -37,70 +40,77 @@
 
 :deferjs
 
-  $('.PCAWG .highlight.submit').click(function(){
-    var link = $(this);
-    var PCAWG = link.parents('.PCAWG').first();
-    var protein_tool = PCAWG.parents('.protein_tool').first();
-    var svg_element  = protein_tool.find('.svg').first();
-    //var jmol_element  = protein_tool.find('.JMol').first();
-    var ngl_element = protein_tool.find('.NGL_viewer').first();
+  require_js(["/js-find/rbbt.protein_tool.js"], function(){
+    $('.PCAWG .highlight.submit').removeClass('disabled')
+    $('.PCAWG .highlight.submit').click(function(){
+      var link = $(this);
+      var PCAWG = link.parents('.PCAWG').first();
+      var protein_tool = PCAWG.parents('.protein_tool').first();
+      var svg_element  = protein_tool.find('.svg').first();
+      //var jmol_element  = protein_tool.find('.JMol').first();
+      var ngl_element = protein_tool.find('.NGL_viewer').first();
 
-    var table = PCAWG.find('table');
-    var url = table.attr('attr-url');
-    var filter = table.attr('attr-filter');
+      var table = PCAWG.find('table');
+      var url = table.attr('attr-url');
+      var filter = table.attr('attr-filter');
 
-    url = add_parameter(url, '_format', 'json')
-    url = add_parameter(url, '_page', 'all')
-    if (undefined != filter){ url = add_parameter(url, '_filter',  escape(filter)) }
+      url = add_parameter(url, '_format', 'json')
+      url = add_parameter(url, '_page', 'all')
+      if (undefined != filter){ url = add_parameter(url, '_filter',  escape(filter)) }
 
-    var color = 'red'
-    var abbr_colors = #{PCAWG.color_palette.tsv.to_json}
+      var color = 'red'
+      var abbr_colors = #{PCAWG.color_palette.tsv.to_json}
 
-    rbbt.ajax({
-      url: url,
-      success: function(data){
-        var change_positions_abbr = {};
-        var change_counts = {}
+      rbbt.ajax({
+        url: url,
+        success: function(data){
+          var change_positions_abbr = {};
+          var change_counts = {}
 
 
-        forHash(data, function(change, values){
-          if (m = change.match(/[A-Z](\d+)[A-Z]/)){
-            var samples = values[0];
-            var abbrs = values[3];
-            var m;
+          forHash(data, function(change, values){
+            if (m = change.match(/[A-Z](\d+)[A-Z]/)){
+              var samples = values[0];
+              var abbrs = values[3];
+              var m;
 
-            var pos = parseInt(m[1])
-            for (var i = 0; i < abbrs.length; i++){
-              var abbr = abbrs[i];
-              var change_positions;
-              if (change_positions_abbr[abbr] === undefined){
-                change_positions = change_positions_abbr[abbr] = [];
-              }else{
-                change_positions = change_positions_abbr[abbr];
+              var pos = parseInt(m[1])
+              for (var i = 0; i < abbrs.length; i++){
+                var abbr = abbrs[i];
+                var change_positions;
+                if (change_positions_abbr[abbr] === undefined){
+                  change_positions = change_positions_abbr[abbr] = [];
+                }else{
+                  change_positions = change_positions_abbr[abbr];
+                }
+                change_positions.push(pos);
               }
-              change_positions.push(pos);
+              if (change_counts[pos] === undefined){
+                change_counts[pos] = samples.length
+              }else{
+                change_counts[pos] = change_counts[pos] + samples.length
+              }
             }
-            if (change_counts[pos] === undefined){
-              change_counts[pos] = samples.length
-            }else{
-              change_counts[pos] = change_counts[pos] + samples.length
-            }
+          })
+
+
+          var protein_tool = $('.protein_tool#' + '#{id}');
+
+          if (ngl_element === undefined)
+            console.log("No PDB")
+          else
+            ngl_element.ngl_tool('color_mutation_density', change_counts)
+
+          for (abbr in change_positions_abbr){
+            var abbr_key = abbr.toLowerCase().replace(/[^a-zA-Z0-9]/,'.')
+            var color = abbr_colors[abbr_key]
+            rbbt.svg.mark_positions(svg_element, change_positions_abbr[abbr], color);
           }
-        })
 
-
-        var protein_tool = $('.protein_tool#' + '#{id}');
-
-        ngl_element.ngl_tool('color_mutation_density', change_counts)
-        for (abbr in change_positions_abbr){
-          var abbr_key = abbr.toLowerCase().replace(/[^a-zA-Z0-9]/,'.')
-          var color = abbr_colors[abbr_key]
-          rbbt.svg.mark_positions(svg_element, change_positions_abbr[abbr], color);
         }
-
-      }
+      })
+      return false;
     })
-    return false;
   })
 
 
