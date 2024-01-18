@@ -36,7 +36,7 @@
 
 - entity_card.description do
   - donor_drivers = PCAWG.donor_drivers.tsv(:merge => true, :persist => true)
-  - driver_genes = donor_drivers.include?(donor) ? donor_drivers[donor]["Associated Gene Name"].ensembl : []
+  - driver_genes = donor_drivers.include?(donor) ? donor_drivers[donor]["Associated Gene Name"].ensembl.uniq : []
 
 
   - if sample.num_genomic_mutations > 0
